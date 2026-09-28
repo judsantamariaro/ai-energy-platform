@@ -45,10 +45,15 @@ function toEvidence(
 /**
  * Qué eventos explican un incidente de consumo (A4). Solo dos tipos explican un cambio:
  * - OPERATIONAL_CHANGE explica un aumento.
- * - SCHEDULED_OUTAGE explica una caída de la que el consumo se recuperó.
+ * - SCHEDULED_OUTAGE explica una caída de la que el consumo se recuperó. Si la caída no dura lo
+ *   que declara el evento, la explicación es parcial (ver classify.ts).
  * El resto (UNKNOWN, DATA_QUALITY, tipos nuevos) queda como contexto, nunca como explicación.
  */
-function roleForConsumption(event: EventInput, incident: ConsumptionIncident) {
+function roleForConsumption(
+  event: EventInput,
+  incident: ConsumptionIncident,
+  duration: { declared: number | null; matches: boolean | null },
+) {
   const type = event.type.toUpperCase();
   const quoted = event.description ? ` («${event.description}»)` : '';
 
@@ -70,15 +75,26 @@ function roleForConsumption(event: EventInput, incident: ConsumptionIncident) {
         note: 'Una parada programada no explica un aumento de consumo.',
       };
     }
-    return incident.ongoing
-      ? {
-          role: 'NOT_EXPLANATORY' as const,
-          note: 'Hubo una parada programada, pero el consumo no se recuperó al terminar.',
-        }
-      : {
-          role: 'EXPLAINS' as const,
-          note: `Parada programada que coincide con la caída; el consumo volvió a lo normal${quoted}.`,
-        };
+    if (incident.ongoing) {
+      return {
+        role: 'NOT_EXPLANATORY' as const,
+        note: 'Hubo una parada programada, pero el consumo no se recuperó al terminar.',
+      };
+    }
+    // La parada explica el inicio de la caída; si duró más (o menos) de lo declarado, lo que
+    // sobra no tiene explicación: el hallazgo queda como anomalía explicable, no se descarta.
+    if (duration.matches === false) {
+      return {
+        role: 'EXPLAINS' as const,
+        note:
+          `Parada programada al inicio de la caída${quoted}, pero declara ${duration.declared} h ` +
+          `y la caída duró ${incident.durationHours} h: hay que confirmar por qué.`,
+      };
+    }
+    return {
+      role: 'EXPLAINS' as const,
+      note: `Parada programada que coincide con la caída; el consumo volvió a lo normal${quoted}.`,
+    };
   }
   if (type === 'UNKNOWN') {
     return {
@@ -110,7 +126,9 @@ export function assessConsumptionEvents(
   return meterEvents
     .filter((e) => Math.abs(Date.parse(e.timestamp) - start) <= tolerance)
     .map((event) => {
-      const { role, note } = roleForConsumption(event, incident);
+      const declared = parseDeclaredDurationHours(event.description);
+      const matches = durationMatches(declared, incident.durationHours, config);
+      const { role, note } = roleForConsumption(event, incident, { declared, matches });
       return toEvidence(event, start, incident.durationHours, role, note, config);
     });
 }

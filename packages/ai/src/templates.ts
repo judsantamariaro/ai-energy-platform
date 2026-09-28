@@ -70,7 +70,9 @@ export function templateReason(finding: Finding): string {
       return `Consumo ${pct(c!.meanDeviation)} ${relation} baseline sin evento que lo explique${electrical}.`;
     }
     case 'EXPLAINABLE_ANOMALY':
-      return `Consumo ${pct(c!.meanDeviation)} sobre el baseline, coincide con un cambio operativo registrado.`;
+      return c!.direction === 'DOWN'
+        ? `Caída de consumo de ${pct(c!.meanDeviation)} que duró distinto de la parada programada declarada.`
+        : `Consumo ${pct(c!.meanDeviation)} sobre el baseline, coincide con un cambio operativo registrado.`;
     case 'FALSE_POSITIVE':
       return `Caída de consumo de ${pct(c!.meanDeviation)} explicada por una parada programada; el consumo se recuperó.`;
     case 'DATA_QUALITY': {
@@ -114,8 +116,30 @@ function realAnomaly(finding: Finding): Narrative {
   return { explanation, steps };
 }
 
+/** Caída que empezó con una parada programada, pero duró distinto de lo que declara el evento. */
+function extendedOutage(finding: Finding): Narrative {
+  const event = finding.evidence.events.find((e) => e.role === 'EXPLAINS')!;
+  const observed = finding.evidence.window.durationHours;
+  const explanation = [
+    consumptionSentence(finding),
+    `Empezó con el evento ${event.type} del ${when(event.timestamp)}${quote(event)}, que declara ` +
+      `${num(event.declaredDurationHours ?? 0, 0)} h, pero la caída duró ${observed} h.`,
+    'La parada explica el inicio, no toda la caída: por eso no se descarta como falso positivo.',
+  ].join(' ');
+
+  return {
+    explanation,
+    steps: [
+      'Confirmar con operación por qué la parada duró distinto de lo programado.',
+      'Verificar que los equipos volvieron a operar con normalidad después de la parada.',
+      'Registrar la duración real de la parada para futuras planificaciones.',
+    ],
+  };
+}
+
 function explainableAnomaly(finding: Finding): Narrative {
   const event = finding.evidence.events.find((e) => e.role === 'EXPLAINS')!;
+  if (finding.evidence.consumption?.direction === 'DOWN') return extendedOutage(finding);
   const changes = changedVariables(finding);
   const explanation = [
     consumptionSentence(finding),
@@ -135,14 +159,17 @@ function explainableAnomaly(finding: Finding): Narrative {
   };
 }
 
+function declaredDurationSentence(event: EventEvidence, observedHours: number): string {
+  if (event.declaredDurationHours === null) return '';
+  const declared = num(event.declaredDurationHours, 0);
+  return event.durationMatches
+    ? ` El evento declara ${declared} h, igual a lo observado.`
+    : ` El evento declara ${declared} h, distinto de las ${observedHours} h observadas.`;
+}
+
 function falsePositive(finding: Finding): Narrative {
   const event = finding.evidence.events.find((e) => e.role === 'EXPLAINS')!;
-  const duration =
-    event.declaredDurationHours !== null
-      ? event.durationMatches
-        ? ` El evento declara ${num(event.declaredDurationHours, 0)} h, igual a lo observado.`
-        : ` El evento declara ${num(event.declaredDurationHours, 0)} h, distinto de las ${finding.evidence.window.durationHours} h observadas.`
-      : '';
+  const duration = declaredDurationSentence(event, finding.evidence.window.durationHours);
   const explanation =
     `${consumptionSentence(finding)} Coincide con el evento ${event.type} del ${when(event.timestamp)}${quote(event)}.` +
     `${duration} Después el consumo volvió a su nivel normal, así que no requiere acción.`;

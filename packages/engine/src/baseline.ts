@@ -15,6 +15,8 @@ export interface Baseline {
   ratio: number | null;
   /** Consumo de un día típico: suma de las medianas horarias. */
   dayKwh: number;
+  /** Consumo horario típico del medidor (mediana de todas sus horas): escala de referencia. */
+  typicalKwh: number;
   /** Ruido del consumo: σ robusta de la desviación horaria relativa frente al baseline. */
   noise: number;
 }
@@ -52,6 +54,7 @@ export function computeBaseline(series: MeterSeries): Baseline {
     voltage: median(points.map((p) => p.voltage).filter(isPresent)),
     ratio: median(points.map((p) => p.ratio).filter(isPresent)),
     dayKwh: kwhByHour.reduce<number>((acc, v) => acc + (v ?? 0), 0),
+    typicalKwh: median(points.map((p) => p.kwh).filter(isPresent)) ?? 0,
     noise: 0,
   };
 

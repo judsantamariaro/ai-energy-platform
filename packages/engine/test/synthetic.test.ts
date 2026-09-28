@@ -185,3 +185,50 @@ describe('priorización y etapas', () => {
     expect(analyze([], []).summary).toMatchObject({ metersAnalyzed: 0, anomaliesDetected: 0 });
   });
 });
+
+describe('parada programada que no dura lo declarado', () => {
+  it('una caída más larga que la parada declarada queda como explicable, no se descarta', () => {
+    // La parada declara 10 h, pero el consumo tarda 30 h en recuperarse.
+    const f = only(syntheticMeter({ transform: scaleLoadFrom(STEP, 0.2, STEP + 30) }), [
+      event(STEP, 'SCHEDULED_OUTAGE', 'Maintenance outage for 10 hours'),
+    ]);
+    expect(f).toMatchObject({ type: 'EXPLAINABLE_ANOMALY', severity: 'MEDIUM' });
+    expect(f.evidence.events).toMatchObject([
+      { role: 'EXPLAINS', declaredDurationHours: 10, durationMatches: false },
+    ]);
+    expect(f.evidence.events[0]!.note).toContain('declara 10 h y la caída duró 30 h');
+  });
+
+  it('sin duración declarada, una caída con recuperación sigue siendo falso positivo', () => {
+    const f = only(syntheticMeter({ transform: scaleLoadFrom(STEP, 0.2, STEP + 30) }), [
+      event(STEP, 'SCHEDULED_OUTAGE', 'Mantenimiento'),
+    ]);
+    expect(f.type).toBe('FALSE_POSITIVE');
+  });
+});
+
+describe('horas sin consumo esperado', () => {
+  // Una planta que no consume nada de noche (00:00–05:59).
+  const nightOff = (r: ReadingInput, i: number): ReadingInput =>
+    i % DAY < 6 ? { ...r, consumptionKwh: 0, currentA: 0 } : r;
+
+  it('un medidor que apaga de noche no genera hallazgos', () => {
+    expect(analyze(syntheticMeter({ transform: nightOff }), []).findings).toEqual([]);
+  });
+
+  it('consumo nocturno donde se esperaba cero → anomalía real', () => {
+    // El día 12 un equipo queda encendido toda la noche.
+    const readings = syntheticMeter({
+      transform: (r, i) => {
+        const off = nightOff(r, i);
+        return i >= 11 * DAY && i < 11 * DAY + 6
+          ? { ...off, consumptionKwh: 20, currentA: 90 }
+          : off;
+      },
+    });
+    const f = only(readings);
+    expect(f).toMatchObject({ type: 'REAL_ANOMALY', windowStart: readings[11 * DAY]!.timestamp });
+    expect(f.evidence.consumption).toMatchObject({ direction: 'UP', expectedKwh: 0 });
+    expect(f.evidence.window.durationHours).toBe(6);
+  });
+});

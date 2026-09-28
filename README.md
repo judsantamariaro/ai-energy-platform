@@ -144,15 +144,15 @@ salvo `health` y `auth/login`, requieren sesión
 ## Calidad
 
 ```bash
-pnpm check      # formato + lint + typecheck + 180 tests unitarios y de integración
+pnpm check      # formato + lint + typecheck + 187 tests unitarios y de integración
 pnpm test:e2e   # 4 tests de punta a punta en el navegador (flujo completo de la demo)
 ```
 
 | Paquete           | Tests | Qué cubren                                                                                |
 | ----------------- | ----- | ----------------------------------------------------------------------------------------- |
-| `packages/engine` | 66    | Los 4 casos del dataset, 8 sanos sin hallazgos, sensibilidad ±20 %, escenarios sintéticos |
-| `packages/ai`     | 41    | Plantillas, validación de números y de contenido, proveedor Ollama                        |
-| `apps/api`        | 64    | Login, sesión y límite de intentos, flujo sobre el dataset real, Acción, fallos, LLM      |
+| `packages/engine` | 70    | Los 4 casos del dataset, 8 sanos sin hallazgos, sensibilidad ±20 %, escenarios sintéticos |
+| `packages/ai`     | 42    | Plantillas, validación de números y de contenido, proveedor Ollama                        |
+| `apps/api`        | 66    | Login, sesión y límite de intentos, flujo sobre el dataset real, Acción, reapertura, LLM  |
 | `apps/web`        | 9     | Formato, insignias, login y error al lanzar el análisis                                   |
 | `e2e`             | 4     | Login → Dashboard → M-109 → Run AI Analysis → Anomalía → Explicación → Acción             |
 

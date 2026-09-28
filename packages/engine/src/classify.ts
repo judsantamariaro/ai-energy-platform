@@ -91,6 +91,31 @@ function timingFactor(explaining: EventEvidence, config: EngineConfig, weight: n
   );
 }
 
+/** Tipo de un incidente de consumo (A4). */
+function consumptionType(
+  incident: ConsumptionIncident,
+  explaining: EventEvidence | undefined,
+): AnomalyType {
+  if (!explaining) return 'REAL_ANOMALY';
+  if (incident.direction === 'UP') return 'EXPLAINABLE_ANOMALY';
+  // Una caída explicada es falso positivo solo si la duración declarada por el evento (si la hay)
+  // coincide con la observada; si no, queda como explicable para confirmar con operación.
+  return explaining.durationMatches === false ? 'EXPLAINABLE_ANOMALY' : 'FALSE_POSITIVE';
+}
+
+/** Severidad (A5): una anomalía real es HIGH si el cambio es grande o hay cambios eléctricos. */
+function consumptionSeverity(
+  type: AnomalyType,
+  incident: ConsumptionIncident,
+  electrical: ElectricalSignature,
+  config: EngineConfig,
+): Severity {
+  if (type === 'FALSE_POSITIVE') return 'LOW';
+  if (type === 'EXPLAINABLE_ANOMALY') return 'MEDIUM';
+  const large = Math.abs(incident.meanDeviation) > config.severity.realHighDeviation;
+  return large || electrical.signals.length > 0 ? 'HIGH' : 'MEDIUM';
+}
+
 /** Clasificación de un incidente de consumo (A4) con su severidad (A5) y confianza (A6). */
 export function classifyConsumptionIncident(
   incident: ConsumptionIncident,
@@ -100,21 +125,8 @@ export function classifyConsumptionIncident(
   config: EngineConfig,
 ): Finding {
   const explaining = events.find((e) => e.role === 'EXPLAINS');
-  const type: AnomalyType = !explaining
-    ? 'REAL_ANOMALY'
-    : incident.direction === 'UP'
-      ? 'EXPLAINABLE_ANOMALY'
-      : 'FALSE_POSITIVE';
-
-  const severity: Severity =
-    type === 'FALSE_POSITIVE'
-      ? 'LOW'
-      : type === 'EXPLAINABLE_ANOMALY'
-        ? 'MEDIUM'
-        : Math.abs(incident.meanDeviation) > config.severity.realHighDeviation ||
-            electrical.signals.length > 0
-          ? 'HIGH'
-          : 'MEDIUM';
+  const type = consumptionType(incident, explaining);
+  const severity = consumptionSeverity(type, incident, electrical, config);
 
   const magnitude = factor(
     'Magnitud frente al ruido',

@@ -31,18 +31,18 @@ entrenar un modelo.
 
 ### Reglas (A1–A9)
 
-| #   | Regla                                                                                                 | Dato que la respalda                                                     |
-| --- | ----------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
-| A1  | Baseline = mediana por hora del día (los tramos anómalos son minoría en cada serie)                   | Peor sano: 17 % de desviación en 1 h                                     |
-| A2  | Incidente = ≥ 3 h con \|desviación\| > 25 %, huecos ≤ 2 h, aumentos y caídas por separado             | Da 3 incidentes y 0 en los sanos                                         |
-| A3  | Firma eléctrica: PF cae > 0,05, voltaje se mueve > 1,5 % (peor media móvil de 6 h), k se mueve > 15 % | Peor sano: −0,019 de PF y 0,8 % de voltaje; M-109: −0,207, −1,9 %, +27 % |
-| A3  | Calidad de datos: ≥ 2 de {voltaje fuera de ±5 %, saltos > 10 V, dispersión de k > 2×}                 | Sanos: 0 / 0 / —; M-112: 16 / 32 / 2,8×                                  |
-| A4  | Explican un cambio solo `OPERATIONAL_CHANGE` (aumento) y `SCHEDULED_OUTAGE` (caída con recuperación)  | `UNKNOWN` en M-109 no explica nada                                       |
-| A5  | Severidad por tipo y magnitud; prioridad por rangos (ver abajo)                                       |                                                                          |
-| A6  | Confianza = 0,5 + 0,49 × promedio ponderado de factores guardados en la evidencia                     |                                                                          |
-| A7  | Tolerancia de ±2 h entre evento e inicio; la duración declarada solo suma evidencia                   | Los 3 eventos calzan a 0 h                                               |
-| A8  | Consumo actual = últimas 24 h frente al baseline de esas horas                                        | M-109 +108 %, M-104 +45 %                                                |
-| A9  | CRITICAL = anomalía real HIGH; ALERT = otro hallazgo que no sea falso positivo; OK en el resto        |                                                                          |
+| #   | Regla                                                                                                                                                                                           | Dato que la respalda                                                     |
+| --- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| A1  | Baseline = mediana por hora del día (los tramos anómalos son minoría en cada serie)                                                                                                             | Peor sano: 17 % de desviación en 1 h                                     |
+| A2  | Incidente = ≥ 3 h con \|desviación\| > 25 %, huecos ≤ 2 h, aumentos y caídas por separado. En horas con consumo esperado casi cero, se marca si consume más del 25 % del consumo horario típico | Da 3 incidentes y 0 en los sanos                                         |
+| A3  | Firma eléctrica: PF cae > 0,05, voltaje se mueve > 1,5 % (peor media móvil de 6 h), k se mueve > 15 %                                                                                           | Peor sano: −0,019 de PF y 0,8 % de voltaje; M-109: −0,207, −1,9 %, +27 % |
+| A3  | Calidad de datos: ≥ 2 de {voltaje fuera de ±5 %, saltos > 10 V, dispersión de k > 2×}                                                                                                           | Sanos: 0 / 0 / —; M-112: 16 / 32 / 2,8×                                  |
+| A4  | Explican un cambio solo `OPERATIONAL_CHANGE` (aumento) y `SCHEDULED_OUTAGE` (caída con recuperación)                                                                                            | `UNKNOWN` en M-109 no explica nada                                       |
+| A5  | Severidad por tipo y magnitud; prioridad por rangos (ver abajo)                                                                                                                                 |                                                                          |
+| A6  | Confianza = 0,5 + 0,49 × promedio ponderado de factores guardados en la evidencia                                                                                                               |                                                                          |
+| A7  | Tolerancia de ±2 h entre evento e inicio. Si una parada declara una duración y la caída dura distinto, el hallazgo queda como anomalía explicable (Validar operación), no como falso positivo   | Los 3 eventos calzan a 0 h; M-106 declara 12 h y duró 12 h               |
+| A8  | Consumo actual = últimas 24 h frente al baseline de esas horas                                                                                                                                  | M-109 +108 %, M-104 +45 %                                                |
+| A9  | CRITICAL = anomalía real HIGH; ALERT = otro hallazgo que no sea falso positivo; OK en el resto                                                                                                  |                                                                          |
 
 Una k **desplazada pero estable** (M-109: 1,06 → 1,36 con la misma dispersión) indica un cambio
 eléctrico real. Una k **errática** (M-112: dispersión 2,8× mayor) indica datos inconsistentes.

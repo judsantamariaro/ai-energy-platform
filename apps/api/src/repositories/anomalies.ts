@@ -17,6 +17,10 @@ import { latestCompletedRun } from './runs.js';
 
 export type AnomalyRow = typeof anomalies.$inferSelect;
 
+const CLOSED_STATUSES: readonly AnomalyStatus[] = ['RESOLVED', 'DISMISSED'];
+const SEVERITY_RANK: Record<Severity, number> = { LOW: 1, MEDIUM: 2, HIGH: 3 };
+const SEVERITY_LABEL: Record<Severity, string> = { LOW: 'baja', MEDIUM: 'media', HIGH: 'alta' };
+
 export const FALSE_POSITIVE_NOTE =
   'Descartada automáticamente: el cambio lo explica un evento operativo. No escalar.';
 
@@ -81,12 +85,29 @@ export function saveFindings(
     };
 
     const existing = db
-      .select({ id: anomalies.id })
+      .select({ id: anomalies.id, status: anomalies.status, severity: anomalies.severity })
       .from(anomalies)
       .where(eq(anomalies.findingKey, finding.key))
       .get();
     if (existing) {
-      db.update(anomalies).set(values).where(eq(anomalies.id, existing.id)).run();
+      // Cerrada por el usuario pero ahora más grave: se reabre y queda registrado por qué.
+      const reopen =
+        CLOSED_STATUSES.includes(existing.status) &&
+        SEVERITY_RANK[finding.severity] > SEVERITY_RANK[existing.severity];
+      db.update(anomalies)
+        .set(reopen ? { ...values, status: 'OPEN' } : values)
+        .where(eq(anomalies.id, existing.id))
+        .run();
+      if (reopen) {
+        db.insert(anomalyActions)
+          .values({
+            anomalyId: existing.id,
+            status: 'OPEN',
+            note: `Reabierta automáticamente: un nuevo análisis la detectó con severidad ${SEVERITY_LABEL[finding.severity]} (antes ${SEVERITY_LABEL[existing.severity]}).`,
+            createdAt: timestamp,
+          })
+          .run();
+      }
       continue;
     }
 
@@ -193,7 +214,7 @@ export function getAnomaly(db: Db, id: string): AnomalyDetail | null {
 export function updateAnomalyStatus(
   db: Db,
   id: string,
-  change: { status: AnomalyStatus; note?: string | undefined; userId: number },
+  change: { status: AnomalyStatus; note?: string; userId: number },
   now: Date,
 ): boolean {
   return db.transaction((tx) => {
@@ -214,11 +235,6 @@ export function updateAnomalyStatus(
       .run();
     return true;
   });
-}
-
-export function anomalyMeterId(db: Db, id: string): string | undefined {
-  return db.select({ meterId: anomalies.meterId }).from(anomalies).where(eq(anomalies.id, id)).get()
-    ?.meterId;
 }
 
 export function currentAnomaliesForMeters(db: Db, meterIds: string[]) {

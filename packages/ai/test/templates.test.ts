@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest';
+import { analyze } from '@aiem/engine';
+import { event, scaleLoadFrom, syntheticMeter } from '../../engine/test/synthetic.js';
 import { DEFAULT_CONFIG } from '@aiem/engine';
 import { allowedNumbers, ungroundedNumbers } from '../src/grounding.js';
 import { RECOMMENDED_ACTIONS, templateNarrative, templateReason } from '../src/templates.js';
@@ -63,4 +65,20 @@ describe('plantillas sobre el dataset entregado', () => {
       ).toEqual([]);
     },
   );
+});
+
+describe('plantilla de una parada que no duró lo declarado', () => {
+  const readings = syntheticMeter({ transform: scaleLoadFrom(240, 0.2, 270) });
+  const [finding] = analyze(readings, [
+    event(240, 'SCHEDULED_OUTAGE', 'Outage for 10 hours'),
+  ]).findings;
+
+  it('explica que la parada solo cubre el inicio y pide confirmar con operación', () => {
+    expect(finding!.type).toBe('EXPLAINABLE_ANOMALY');
+    expect(templateReason(finding!)).toContain('duró distinto de la parada programada declarada');
+    const { explanation, steps } = templateNarrative(finding!);
+    expect(explanation).toContain('declara 10 h, pero la caída duró 30 h');
+    expect(steps[0]).toContain('por qué la parada duró distinto');
+    expect(RECOMMENDED_ACTIONS[finding!.type]).toBe('Validar operación');
+  });
 });

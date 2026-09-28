@@ -45,23 +45,41 @@ export function detectConsumptionIncidents(
   baseline: Baseline,
   config: EngineConfig,
 ): ConsumptionIncident[] {
-  const { deviationThreshold, maxGapHours, minFlaggedHours } = config.consumption;
+  const { deviationThreshold, maxGapHours, minFlaggedHours, zeroBaselineShare, nearZeroShare } =
+    config.consumption;
   const { points } = series;
   const deviations = points.map((p) => consumptionDeviation(baseline, p));
 
+  // Consumo donde se esperaba casi cero: la desviación relativa no existe, se compara en absoluto.
+  const typical = baseline.typicalKwh;
+  const unexpectedUse = (p: Point) => {
+    const expected = expectedKwh(baseline, p);
+    return (
+      typical > 0 &&
+      expected !== null &&
+      expected <= nearZeroShare * typical &&
+      p.kwh !== null &&
+      p.kwh > zeroBaselineShare * typical
+    );
+  };
+
   const directions = [
-    { direction: 'UP' as const, flagged: (d: number) => d > deviationThreshold },
-    { direction: 'DOWN' as const, flagged: (d: number) => d < -deviationThreshold },
+    {
+      direction: 'UP' as const,
+      flagged: (d: number | null, p: Point) =>
+        (isPresent(d) && d > deviationThreshold) || unexpectedUse(p),
+    },
+    {
+      direction: 'DOWN' as const,
+      flagged: (d: number | null) => isPresent(d) && d < -deviationThreshold,
+    },
   ];
 
   return directions
     .flatMap(({ direction, flagged }) =>
       groupFlagged(
         points,
-        (_, i) => {
-          const d = deviations[i];
-          return isPresent(d) && flagged(d);
-        },
+        (p, i) => flagged(deviations[i] ?? null, p),
         maxGapHours,
         minFlaggedHours,
       ).map((window): ConsumptionIncident => {
@@ -76,7 +94,8 @@ export function detectConsumptionIncidents(
           ongoing: isOngoing(points, window, maxGapHours),
           observedKwh: totals.observedKwh,
           expectedKwh: totals.expectedKwh,
-          meanDeviation: totals.meanDeviation ?? 0,
+          // Sin consumo esperado en toda la ventana, el aumento se expresa como +100 %.
+          meanDeviation: totals.meanDeviation ?? (totals.observedKwh > 0 ? 1 : 0),
           peakDeviation:
             maxByMagnitude(
               deviations.slice(window.startIndex, window.endIndex + 1).filter(isPresent),

@@ -10,6 +10,13 @@ export const DEFAULT_CONFIG = {
     minFlaggedHours: 3,
     /** Horas sin marcar que se toleran dentro de un mismo incidente. */
     maxGapHours: 2,
+    /**
+     * Horas cuyo consumo esperado es casi cero (p. ej. una planta apagada de noche): la desviación
+     * relativa no existe, así que se marca la hora si consume más que esta fracción del consumo
+     * horario típico del medidor. "Casi cero" = menos de `nearZeroShare` del típico.
+     */
+    zeroBaselineShare: 0.25,
+    nearZeroShare: 0.01,
   },
   electrical: {
     /** Ventana de la media móvil con la que se busca el peor tramo del incidente. */
