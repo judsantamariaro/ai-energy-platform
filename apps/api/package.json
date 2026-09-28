@@ -8,14 +8,22 @@
     "build": "tsup",
     "start": "node dist/server.js",
     "typecheck": "tsc -p .",
-    "test": "vitest run"
+    "test": "vitest run",
+    "db:generate": "drizzle-kit generate",
+    "db:reset": "tsx src/cli/db-reset.ts"
   },
   "dependencies": {
     "@aiem/engine": "workspace:^",
     "@aiem/shared": "workspace:^",
-    "fastify": "^5.12.5"
+    "better-sqlite3": "^13.0.3",
+    "csv-parse": "^7.0.3",
+    "drizzle-orm": "^0.45.3",
+    "fastify": "^5.12.5",
+    "zod": "^4.6.5"
   },
   "devDependencies": {
+    "@types/better-sqlite3": "^9.6.0",
+    "drizzle-kit": "^0.31.11",
     "tsup": "^8.5.1",
     "tsx": "^4.23.15"
   }

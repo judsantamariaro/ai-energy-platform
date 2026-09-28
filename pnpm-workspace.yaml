@@ -1,3 +1,10 @@
 packages:
   - 'apps/*'
   - 'packages/*'
+
+# pnpm 10 no ejecuta scripts de instalación salvo los autorizados aquí.
+onlyBuiltDependencies:
+  - esbuild
+# better-sqlite3 trae binarios precompilados (prebuilds/): no hace falta compilar con node-gyp.
+ignoredBuiltDependencies:
+  - better-sqlite3

@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "description": "AI Energy Management Platform — detección, explicación y priorización de anomalías en medidores eléctricos",
-  "packageManager": "pnpm@8.14.1",
+  "packageManager": "pnpm@10.34.5",
   "engines": {
     "node": ">=22.12"
   },
@@ -16,7 +16,8 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test"
+    "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test",
+    "db:reset": "pnpm --filter @aiem/api db:reset"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

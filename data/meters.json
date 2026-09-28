@@ -1,0 +1,14 @@
+[
+  { "meter_id": "M-101", "name": "Oficinas Centrales", "location": "Bogotá · Edificio corporativo" },
+  { "meter_id": "M-102", "name": "Centro de Distribución Norte", "location": "Bogotá · Zona franca" },
+  { "meter_id": "M-103", "name": "Sede Comercial Chapinero", "location": "Bogotá · Chapinero" },
+  { "meter_id": "M-104", "name": "Planta de Envases", "location": "Medellín · Itagüí" },
+  { "meter_id": "M-105", "name": "Bodega Refrigerada", "location": "Medellín · Guayabal" },
+  { "meter_id": "M-106", "name": "Planta de Alimentos", "location": "Cali · Acopi, Yumbo" },
+  { "meter_id": "M-107", "name": "Tienda Insignia", "location": "Cali · Granada" },
+  { "meter_id": "M-108", "name": "Centro de Datos", "location": "Barranquilla · Zona franca" },
+  { "meter_id": "M-109", "name": "Planta Metalmecánica", "location": "Bucaramanga · Girón" },
+  { "meter_id": "M-110", "name": "Hotel Corporativo", "location": "Cartagena · Bocagrande" },
+  { "meter_id": "M-111", "name": "Clínica Regional", "location": "Pereira · Centro" },
+  { "meter_id": "M-112", "name": "Planta de Tratamiento de Agua", "location": "Manizales · La Enea" }
+]

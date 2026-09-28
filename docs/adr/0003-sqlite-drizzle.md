@@ -1,6 +1,6 @@
 # ADR 0003 — SQLite + Drizzle ORM para la persistencia
 
-- Estado: aceptada (se implementa en la F1)
+- Estado: aceptada
 - Fecha: 2026-09-27
 
 ## Contexto
@@ -24,4 +24,8 @@ el archivo `.db` no se versiona.
 
 - El acceso a datos queda detrás de repositorios, así que migrar a PostgreSQL sería cambiar el
   driver y el dialecto de Drizzle, no la lógica.
-- El driver concreto (`better-sqlite3` o `node:sqlite`) se elige en la F1.
+- Driver: `better-sqlite3`. Es maduro y la versión 13 trae binarios precompilados dentro del paquete,
+  así que no necesita compilar nada (en `pnpm-workspace.yaml` su script de build está en
+  `ignoredBuiltDependencies`). `node:sqlite` viene incluido en Node, pero todavía es experimental.
+- Las migraciones SQL las genera `drizzle-kit` (`pnpm --filter @aiem/api db:generate`), se versionan
+  en `apps/api/drizzle/` y se aplican solas al abrir la base.
