@@ -5,7 +5,7 @@ acciones** sobre anomalías de consumo.
 
 Ciclo que demuestra la solución: **datos → análisis → anomalía → explicación → priorización → acción**.
 
-> Estado: **F3 — capa de IA** completada. Ver [hoja de ruta](#hoja-de-ruta).
+> Estado: **F4 — API** completada. Ver [hoja de ruta](#hoja-de-ruta).
 
 ## Stack
 
@@ -45,6 +45,9 @@ docs/adr/     Registro de decisiones de arquitectura
 pnpm install
 pnpm dev          # API en http://localhost:3000 · Web en http://localhost:5173
 ```
+
+Usuario de demostración: **demo@bia.energy** / **energia2026**. La configuración opcional está en
+[`apps/api/.env.example`](apps/api/.env.example).
 
 La primera vez que arranca, la API crea la base SQLite (`apps/api/.data/aiem.db`), aplica las
 migraciones y carga los datos de `data/`. Para regenerarla desde cero: `pnpm db:reset`.
@@ -116,6 +119,26 @@ ollama pull qwen2.5:3b
 pnpm --filter @aiem/ai compare-models qwen2.5:3b   # prueba el modelo con los hallazgos reales
 ```
 
+## API
+
+Documentación interactiva (OpenAPI) en **http://localhost:3000/docs**. Todas las rutas van bajo
+`/api` y, salvo `health` y `auth/login`, requieren sesión ([ADR 0007](docs/adr/0007-api-y-analisis-asincrono.md)).
+
+| Método | Ruta                           | Qué hace                                                                                               |
+| ------ | ------------------------------ | ------------------------------------------------------------------------------------------------------ |
+| POST   | `/auth/login` · `/auth/logout` | Inicia o cierra la sesión (cookie httpOnly)                                                            |
+| GET    | `/auth/me`                     | Usuario de la sesión                                                                                   |
+| GET    | `/dashboard/summary`           | KPIs: medidores por estado, consumo diario, anomalías, confianza, último análisis                      |
+| GET    | `/meters`                      | Medidores; filtros `status`, `search`, orden `sort` (`consumption`, `variation`, `severity`) y `order` |
+| GET    | `/meters/:meterId`             | Consumo actual, baseline horario, anomalías y eventos del medidor                                      |
+| GET    | `/meters/:meterId/readings`    | Serie horaria de consumo, voltaje, corriente y PF (`from`, `to`)                                       |
+| POST   | `/ai/analyze`                  | Run AI Analysis: lanza el análisis (202) o devuelve el que está en curso (409)                         |
+| GET    | `/ai/analysis/:id` · `/latest` | Estado del análisis y de cada una de sus 7 etapas                                                      |
+| GET    | `/anomalies`                   | Anomalías vigentes por prioridad; filtros `type`, `severity`, `status`, `meterId`                      |
+| GET    | `/anomalies/:id`               | Investigación: explicación, pasos, evidencia, eventos e historial                                      |
+| PATCH  | `/anomalies/:id`               | Acción: cambia el estado (`IN_PROGRESS`, `RESOLVED`, `DISMISSED`) con una nota                         |
+| GET    | `/health`                      | Estado de la API y del LLM local                                                                       |
+
 ## Hoja de ruta
 
 | Fase | Alcance                                                                | Estado |
@@ -124,7 +147,7 @@ pnpm --filter @aiem/ai compare-models qwen2.5:3b   # prueba el modelo con los ha
 | F1   | Datos: modelo, BD, migraciones, carga de CSV con validación            | ✅     |
 | F2   | Motor analítico validado contra los casos del dataset                  | ✅     |
 | F3   | Capa IA: explicación y recomendación sustentadas en evidencia          | ✅     |
-| F4   | API completa + análisis asíncrono por etapas                           | ⏳     |
+| F4   | API completa + análisis asíncrono por etapas                           | ✅     |
 | F5   | Frontend SaaS: dashboard, medidores, detalle, anomalías, investigación | ⏳     |
 | F6   | Calidad: tests e2e, documentación                                      | ⏳     |
 | F7   | Demo                                                                   | ⏳     |

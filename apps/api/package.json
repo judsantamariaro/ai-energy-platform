@@ -13,12 +13,18 @@
     "db:reset": "tsx src/cli/db-reset.ts"
   },
   "dependencies": {
+    "@aiem/ai": "workspace:*",
     "@aiem/engine": "workspace:^",
     "@aiem/shared": "workspace:^",
+    "@fastify/cookie": "^11.1.2",
+    "@fastify/swagger": "^9.9.0",
+    "@fastify/swagger-ui": "^6.1.1",
     "better-sqlite3": "^13.0.3",
     "csv-parse": "^7.0.3",
     "drizzle-orm": "^0.45.3",
     "fastify": "^5.12.5",
+    "fastify-type-provider-zod": "^7.0.0",
+    "openapi-types": "^12.1.3",
     "zod": "^4.6.5"
   },
   "devDependencies": {

@@ -148,6 +148,12 @@ export interface MeterSummary {
   readings: number;
   periodConsumptionKwh: number;
   baselineDayKwh: number;
+  /** Valores esperados por hora del día (UTC, índice 0–23) según el baseline. */
+  baselineProfile: {
+    kwh: (number | null)[];
+    voltage: (number | null)[];
+    powerFactor: (number | null)[];
+  };
   /** Consumo de las últimas N horas frente a lo esperado por el baseline para esas horas. */
   current: {
     windowHours: number;

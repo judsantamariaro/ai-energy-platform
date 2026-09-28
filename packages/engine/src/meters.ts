@@ -2,14 +2,14 @@ import type { MeterStatus } from '@aiem/shared';
 import { expectedKwh, type Baseline } from './baseline.js';
 import type { EngineConfig } from './config.js';
 import type { MeterSeries } from './series.js';
-import { HOUR_MS, isPresent, round, sum } from './stats.js';
+import { HOUR_MS, isPresent, round, roundOrNull, sum } from './stats.js';
 import type { Finding, MeterSummary } from './types.js';
 
 /**
  * Estado del medidor (A9): CRITICAL si tiene una anomalía real HIGH; ALERT si tiene cualquier otro
  * hallazgo que no sea un falso positivo; OK en los demás casos.
  */
-export function meterStatus(findings: Finding[]): MeterStatus {
+export function meterStatus(findings: Pick<Finding, 'type' | 'severity'>[]): MeterStatus {
   if (findings.some((f) => f.type === 'REAL_ANOMALY' && f.severity === 'HIGH')) return 'CRITICAL';
   if (findings.some((f) => f.type !== 'FALSE_POSITIVE')) return 'ALERT';
   return 'OK';
@@ -45,6 +45,11 @@ export function summarizeMeter(
     readings: points.length,
     periodConsumptionKwh: round(sum(points.map((p) => p.kwh).filter(isPresent)), 1),
     baselineDayKwh: round(baseline.dayKwh, 1),
+    baselineProfile: {
+      kwh: baseline.kwhByHour.map((v) => roundOrNull(v, 2)),
+      voltage: baseline.voltageByHour.map((v) => roundOrNull(v, 1)),
+      powerFactor: baseline.pfByHour.map((v) => roundOrNull(v, 3)),
+    },
     current,
   };
 }
