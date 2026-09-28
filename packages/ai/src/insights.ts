@@ -1,5 +1,6 @@
 import type { Finding } from '@aiem/engine';
 import { allowedNumbers, ungroundedNumbers } from './grounding.js';
+import { contentViolations } from './guardrails.js';
 import { promptPayload } from './ollama.js';
 import { RECOMMENDED_ACTIONS, templateNarrative, templateReason } from './templates.js';
 import type { Insight, MeterContext, NarrativeProvider } from './types.js';
@@ -40,11 +41,13 @@ export async function generateInsight(
       meter: options.meters?.[finding.meterId] ?? {},
       reason,
       recommendedAction,
+      baseExplanation: template.explanation,
+      baseSteps: template.steps,
     };
     const narrative = await provider.generate(request);
 
-    // Solo vale lo que el modelo vio: el prompt y el texto de referencia de la plantilla.
-    const allowed = allowedNumbers(promptPayload(request), template.explanation, template.steps);
+    // Solo vale lo que el modelo vio.
+    const allowed = allowedNumbers(promptPayload(request));
     const invented = ungroundedNumbers(
       [narrative.explanation, ...narrative.steps].join(' '),
       allowed,
@@ -53,6 +56,10 @@ export async function generateInsight(
       return fromTemplate(
         `El modelo citó números que no están en la evidencia: ${invented.join(', ')}`,
       );
+    }
+    const violations = contentViolations(narrative, finding.type);
+    if (violations.length > 0) {
+      return fromTemplate(`El texto del modelo ${violations.join('; ')}`);
     }
 
     return {

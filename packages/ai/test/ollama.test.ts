@@ -7,6 +7,8 @@ const request = {
   meter: { name: 'Planta Metalmecánica', location: 'Bucaramanga · Girón' },
   reason: 'Consumo +107,9 % por encima del baseline sin evento que lo explique.',
   recommendedAction: 'Investigar medidor e instalación',
+  baseExplanation: 'Desde el 12/09 14:00 UTC el consumo estuvo +107,9 % por encima de lo esperado.',
+  baseSteps: ['Inspeccionar en sitio las cargas conectadas.'],
 };
 
 function fakeFetch(response: Response) {
@@ -24,7 +26,7 @@ const chatResponse = (content: unknown) =>
   );
 
 describe('createOllamaProvider', () => {
-  it('pide salida estructurada al modelo y envía solo la evidencia necesaria', async () => {
+  it('pide salida estructurada y envía los hechos ya redactados, sin la evidencia cruda', async () => {
     const { calls, fetchFn } = fakeFetch(
       chatResponse({ explanation: 'x'.repeat(50), steps: ['Revisar la instalación.'] }),
     );
@@ -37,11 +39,13 @@ describe('createOllamaProvider', () => {
     expect(call!.body).toMatchObject({ model: 'qwen2.5:3b', stream: false });
     expect(call!.body.format).toMatchObject({ type: 'object', required: ['explanation', 'steps'] });
 
-    const userMessage = (call!.body.messages as { role: string; content: string }[])[1]!;
-    const payload = JSON.parse(userMessage.content);
-    expect(payload.medidor.nombre).toBe('Planta Metalmecánica');
-    expect(payload.evidencia.signals).toContain('POWER_FACTOR_DEGRADATION');
-    expect(payload.evidencia).not.toHaveProperty('confidenceFactors');
+    const prompt = (call!.body.messages as { role: string; content: string }[])[1]!.content;
+    expect(prompt).toContain('MEDIDOR: M-109 · Planta Metalmecánica · Bucaramanga · Girón');
+    expect(prompt).toContain('confianza de la clasificación 0,97');
+    expect(prompt).toContain(`EXPLICACIÓN BASE (hechos verificados):
+${request.baseExplanation}`);
+    // Sin JSON de evidencia: nada de ids, nombres de campos ni fechas ISO.
+    expect(prompt).not.toMatch(/eventId|meanDeviation|\d{4}-\d{2}-\d{2}T/);
   });
 
   it('falla si Ollama responde con error', async () => {

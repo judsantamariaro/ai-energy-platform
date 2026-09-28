@@ -7,18 +7,27 @@ export const NarrativeSchema = z.object({
   steps: z.array(z.string().min(5).max(300)).min(1).max(5),
 });
 
-const SYSTEM_PROMPT = `Eres un analista de gestión energética. Redactas, en español neutro y claro, la
-explicación de un hallazgo detectado por un motor estadístico en un medidor eléctrico.
+const SYSTEM_PROMPT = `Eres un analista de gestión energética que redacta para el jefe de mantenimiento
+de una planta. Recibes un hallazgo ya analizado por un motor estadístico: su clasificación, una
+explicación base con los hechos verificados y unos pasos base. Tu trabajo es reescribirlos para que
+se entiendan mejor y aporten criterio técnico.
 
-Reglas estrictas:
-- Usa SOLO los datos del JSON que recibes. No inventes cifras, fechas, causas ni eventos.
-- Todo número que escribas debe estar en el JSON (puedes redondearlo o expresarlo en %).
-- No cambies la clasificación, la severidad ni la acción recomendada: explícalas.
-- "explanation": 3 a 5 frases. Qué se observó, qué variables cambiaron, qué eventos se revisaron
-  y por qué eso lleva a la clasificación.
-- "steps": 2 a 4 pasos concretos para ejecutar la acción recomendada.
-- Las fechas están en UTC.
-Responde únicamente con JSON: {"explanation": string, "steps": string[]}.`;
+Reglas:
+1. Los hechos de la explicación base son la única fuente de verdad. No agregues cifras, fechas,
+   eventos ni causas que no estén ahí.
+2. Copia los números tal como aparecen en la explicación base (formato español: 107,9 %, 0,740).
+3. Si la clasificación es "anomalía real" o "problema de calidad de datos", la causa NO se conoce:
+   di que las variables cambiaron "al mismo tiempo" y plantea hipótesis con "podría indicar" o "es
+   compatible con". Nunca escribas "se debe a", "debido a", "causado por" ni "ha sido identificado".
+4. No menciones identificadores internos, nombres de campos ni fechas en formato técnico. Escribe las
+   fechas como aparecen en la explicación base.
+5. La confianza es la del motor en su clasificación, no la calidad de los datos.
+6. No cambies la clasificación, la severidad ni la acción recomendada.
+7. "explanation": de 3 a 5 frases: qué pasó, qué variables cambiaron, qué se revisó de los eventos y
+   por qué eso lleva a la clasificación.
+8. "steps": de 2 a 4 pasos concretos y coherentes con la acción recomendada. Si la acción es "No
+   escalar", no propongas escalar, comunicar ni avisar a nadie.
+Responde solo con JSON: {"explanation": string, "steps": string[]}.`;
 
 const TYPE_LABELS = {
   REAL_ANOMALY: 'anomalía real',
@@ -27,23 +36,42 @@ const TYPE_LABELS = {
   DATA_QUALITY: 'problema de calidad de datos',
 } as const;
 
-/** Lo que ve el modelo: la evidencia del motor, sin el detalle interno de puntajes. */
+/**
+ * Lo que ve el modelo. No recibe la evidencia en JSON: un modelo chico se confunde con los nombres
+ * de campos y los ids. Recibe los hechos ya redactados por la plantilla, que salen de la evidencia.
+ */
 export function promptPayload(request: NarrativeRequest) {
   const { finding, meter } = request;
-  const { confidenceFactors: _factors, priority: _priority, ...evidence } = finding.evidence;
   return {
-    medidor: { id: finding.meterId, nombre: meter.name ?? null, ubicacion: meter.location ?? null },
+    medidor: [finding.meterId, meter.name, meter.location].filter(Boolean).join(' · '),
     clasificacion: TYPE_LABELS[finding.type],
     severidad: finding.severity,
     confianza: finding.confidence,
-    resumen: request.reason,
     accion_recomendada: request.recommendedAction,
-    evidencia: evidence,
+    // Las fechas de la explicación base no llevan año: sin él, el modelo tiende a inventarlo.
+    anio: new Date(finding.windowStart).getUTCFullYear(),
+    resumen: request.reason,
+    explicacion_base: request.baseExplanation,
+    pasos_base: request.baseSteps,
   };
 }
 
 export function buildPrompt(request: NarrativeRequest): string {
-  return JSON.stringify(promptPayload(request), null, 2);
+  const p = promptPayload(request);
+  return [
+    `MEDIDOR: ${p.medidor}`,
+    `CLASIFICACIÓN: ${p.clasificacion} · severidad ${p.severidad} · ` +
+      `confianza de la clasificación ${String(p.confianza).replace('.', ',')}`,
+    `ACCIÓN RECOMENDADA: ${p.accion_recomendada}`,
+    `FECHAS: todas son del año ${p.anio}, en hora UTC.`,
+    `RESUMEN: ${p.resumen}`,
+    '',
+    'EXPLICACIÓN BASE (hechos verificados):',
+    p.explicacion_base,
+    '',
+    'PASOS BASE:',
+    ...p.pasos_base.map((s) => `- ${s}`),
+  ].join('\n');
 }
 
 export interface OllamaOptions {

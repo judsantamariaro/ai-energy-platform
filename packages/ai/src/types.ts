@@ -28,9 +28,11 @@ export interface MeterContext {
 export interface NarrativeRequest {
   finding: Finding;
   meter: MeterContext;
-  /** Texto de la plantilla ya calculado: el LLM lo usa como referencia. */
   reason: string;
   recommendedAction: string;
+  /** Texto de la plantilla: el LLM lo reescribe y enriquece, no parte de cero. */
+  baseExplanation: string;
+  baseSteps: string[];
 }
 
 export interface Narrative {

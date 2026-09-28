@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 import { allowedNumbers, ungroundedNumbers } from '../src/grounding.js';
-import { promptPayload } from '../src/ollama.js';
 import { RECOMMENDED_ACTIONS, templateNarrative, templateReason } from '../src/templates.js';
 import { findingOf, findings } from './fixtures.js';
 
@@ -53,14 +52,13 @@ describe('plantillas sobre el dataset entregado', () => {
   it.each(findings.map((f) => [f.meterId, f] as const))(
     '%s: todos los números de la plantilla están en la evidencia',
     (_, finding) => {
-      const reason = templateReason(finding);
-      const recommendedAction = RECOMMENDED_ACTIONS[finding.type];
+      const { confidenceFactors: _factors, priority: _priority, ...evidence } = finding.evidence;
       const { explanation, steps } = templateNarrative(finding);
-      const allowed = allowedNumbers(
-        promptPayload({ finding, meter: {}, reason, recommendedAction }),
-      );
+      const allowed = allowedNumbers(evidence);
 
-      expect(ungroundedNumbers([explanation, ...steps].join(' '), allowed)).toEqual([]);
+      expect(
+        ungroundedNumbers([templateReason(finding), explanation, ...steps].join(' '), allowed),
+      ).toEqual([]);
     },
   );
 });

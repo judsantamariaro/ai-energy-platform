@@ -5,7 +5,7 @@ acciones** sobre anomalías de consumo.
 
 Ciclo que demuestra la solución: **datos → análisis → anomalía → explicación → priorización → acción**.
 
-> Estado: **F2 — motor analítico** completado. Ver [hoja de ruta](#hoja-de-ruta).
+> Estado: **F3 — capa de IA** completada. Ver [hoja de ruta](#hoja-de-ruta).
 
 ## Stack
 
@@ -100,6 +100,22 @@ Resultado sobre el dataset entregado:
 Los otros 8 medidores no tienen hallazgos. Mover cualquier umbral ±20 % no cambia el resultado
 (test de sensibilidad en `packages/engine/test/dataset.test.ts`).
 
+## Capa de IA
+
+La explicación y la recomendación de cada hallazgo salen de `packages/ai`
+([ADR 0006](docs/adr/0006-capa-de-ia.md)):
+
+- **Sin configurar nada**, se generan con plantillas a partir de la evidencia del motor.
+- **Con [Ollama](https://ollama.com)** instalado y el modelo `qwen2.5:3b` descargado, un LLM libre
+  y local redacta la explicación y los pasos a seguir. Si su respuesta cita un número que no está
+  en la evidencia, afirma una causa desconocida o falla, se usa la plantilla.
+- La acción principal siempre sale de las reglas: el LLM no puede recomendar algo incoherente.
+
+```bash
+ollama pull qwen2.5:3b
+pnpm --filter @aiem/ai compare-models qwen2.5:3b   # prueba el modelo con los hallazgos reales
+```
+
 ## Hoja de ruta
 
 | Fase | Alcance                                                                | Estado |
@@ -107,7 +123,7 @@ Los otros 8 medidores no tienen hallazgos. Mover cualquier umbral ±20 % no camb
 | F0   | Setup: monorepo, TypeScript, lint, tests, dev/build                    | ✅     |
 | F1   | Datos: modelo, BD, migraciones, carga de CSV con validación            | ✅     |
 | F2   | Motor analítico validado contra los casos del dataset                  | ✅     |
-| F3   | Capa IA: explicación y recomendación sustentadas en evidencia          | ⏳     |
+| F3   | Capa IA: explicación y recomendación sustentadas en evidencia          | ✅     |
 | F4   | API completa + análisis asíncrono por etapas                           | ⏳     |
 | F5   | Frontend SaaS: dashboard, medidores, detalle, anomalías, investigación | ⏳     |
 | F6   | Calidad: tests e2e, documentación                                      | ⏳     |
