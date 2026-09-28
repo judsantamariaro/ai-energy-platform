@@ -1,6 +1,8 @@
 /**
  * Motor analítico puro (sin HTTP ni base de datos):
- * lecturas → baseline → detección → incidentes → correlación con eventos → clasificación.
- * Se implementa en la F2.
+ * lecturas → baseline → detección → correlación → eventos → hallazgos priorizados.
  */
-export {};
+export { analyze, type AnalyzeOptions, type EngineStage } from './analyze.js';
+export { DEFAULT_CONFIG, type EngineConfig } from './config.js';
+export { parseDeclaredDurationHours } from './events.js';
+export type * from './types.js';

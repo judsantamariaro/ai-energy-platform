@@ -5,7 +5,7 @@ acciones** sobre anomalías de consumo.
 
 Ciclo que demuestra la solución: **datos → análisis → anomalía → explicación → priorización → acción**.
 
-> Estado: **F1 — datos** completado. Ver [hoja de ruta](#hoja-de-ruta).
+> Estado: **F2 — motor analítico** completado. Ver [hoja de ruta](#hoja-de-ruta).
 
 ## Stack
 
@@ -75,13 +75,38 @@ Reglas de carga (detalle en [ADR 0004](docs/adr/0004-ingesta-y-zona-horaria.md))
 - `expected_results.csv` es el ground truth del evaluador: **no forma parte del repo** (está en
   `.gitignore`) y el motor nunca lo usa.
 
+## Motor de anomalías
+
+Reglas estadísticas explicables, sin ML (detalle y datos que respaldan cada umbral en
+[ADR 0005](docs/adr/0005-motor-de-anomalias.md)):
+
+1. **Baseline:** mediana por hora del día de cada medidor.
+2. **Detección:** incidentes de consumo (≥ 3 h a más de ±25 % del baseline) e incidentes de calidad
+   de datos (voltaje fuera de banda, saltos bruscos, relación kWh / V·I·PF errática).
+3. **Correlación:** cambios en factor de potencia, voltaje y relación física durante el incidente.
+4. **Eventos:** solo un cambio operativo (aumento) o una parada programada con recuperación
+   explican un cambio; un evento `UNKNOWN` no.
+5. **Priorización:** rango por tipo y severidad, y posición según magnitud, riesgo y vigencia.
+
+Resultado sobre el dataset entregado:
+
+| Medidor | Tipo                | Severidad | Confianza | Prioridad | Estado   |
+| ------- | ------------------- | --------- | --------- | --------- | -------- |
+| M-109   | REAL_ANOMALY        | HIGH      | 0,97      | 100       | CRITICAL |
+| M-112   | DATA_QUALITY        | HIGH      | 0,96      | 73,1      | ALERT    |
+| M-104   | EXPLAINABLE_ANOMALY | MEDIUM    | 0,97      | 29,3      | ALERT    |
+| M-106   | FALSE_POSITIVE      | LOW       | 0,99      | 6,4       | OK       |
+
+Los otros 8 medidores no tienen hallazgos. Mover cualquier umbral ±20 % no cambia el resultado
+(test de sensibilidad en `packages/engine/test/dataset.test.ts`).
+
 ## Hoja de ruta
 
 | Fase | Alcance                                                                | Estado |
 | ---- | ---------------------------------------------------------------------- | ------ |
 | F0   | Setup: monorepo, TypeScript, lint, tests, dev/build                    | ✅     |
 | F1   | Datos: modelo, BD, migraciones, carga de CSV con validación            | ✅     |
-| F2   | Motor analítico validado contra los casos del dataset                  | ⏳     |
+| F2   | Motor analítico validado contra los casos del dataset                  | ✅     |
 | F3   | Capa IA: explicación y recomendación sustentadas en evidencia          | ⏳     |
 | F4   | API completa + análisis asíncrono por etapas                           | ⏳     |
 | F5   | Frontend SaaS: dashboard, medidores, detalle, anomalías, investigación | ⏳     |
