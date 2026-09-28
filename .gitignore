@@ -1,0 +1,25 @@
+node_modules/
+dist/
+coverage/
+*.tsbuildinfo
+.env
+.env.*
+!.env.example
+
+# SQLite (se regenera desde data/*.csv)
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+
+# Enunciado de la prueba (no se versiona)
+*.docx
+*.pdf
+
+# Ground truth reservado al evaluador: nunca debe entrar al repo ni al modelo
+expected_results.csv
+
+.DS_Store
+Thumbs.db
+.vscode/*
+!.vscode/extensions.json
