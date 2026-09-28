@@ -7,6 +7,38 @@ anomalías, las **explica** con evidencia, las **prioriza** y **recomienda** qu�
 
 ![Dashboard](docs/screenshots/03-dashboard.png)
 
+## El problema de negocio
+
+Una empresa con varias sedes (plantas, bodegas, oficinas) tiene un medidor eléctrico en cada una.
+Cada medidor reporta cada hora el consumo, el voltaje, la corriente y el factor de potencia: con
+solo 12 medidores son más de 4.000 lecturas en dos semanas. Nadie puede revisarlas a mano, y
+cuando algo sale mal (un equipo que quedó encendido, una falla eléctrica, un medidor averiado) la
+empresa se entera tarde: en la factura, en un recargo o en una avería.
+
+Las alertas clásicas por umbral no resuelven esto: avisan de todo por igual. Una parada de
+mantenimiento programada dispara la misma alarma que una falla real, y el equipo termina
+ignorando las alertas. El problema no es **detectar** cambios, sino **decidir cuáles importan**.
+
+Ante cada cambio, el responsable de energía o de mantenimiento necesita responder cuatro
+preguntas: **¿es real?, ¿tiene una explicación?, ¿es un error del dato?, ¿qué reviso primero?**
+Los cuatro casos del dataset son justamente esas cuatro situaciones:
+
+| Medidor | Qué pasa                                                                                              | Qué significa para el negocio                                                                              | Decisión               |
+| ------- | ----------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- | ---------------------- |
+| M-109   | El consumo se duplica de golpe, sin ningún evento que lo explique, y el factor de potencia se degrada | Energía que se paga sin saber por qué, y una posible falla en la instalación: costo y riesgo               | **Investigar primero** |
+| M-112   | El consumo es normal, pero voltaje y factor de potencia dan saltos imposibles                         | El medidor o su comunicación fallan: esos datos no sirven para facturar ni para decidir                    | Validar el medidor     |
+| M-104   | El consumo sube 44 % el día que arrancó una nueva línea de producción                                 | Es un cambio esperado, pero cambia el costo: hay que confirmarlo y ajustar lo que se espera de ese medidor | Validar con operación  |
+| M-106   | El consumo cae 80 % durante las 12 h de un mantenimiento programado y se recupera                     | No es un problema: escalarlo haría perder tiempo y restaría credibilidad a las alertas                     | No escalar             |
+
+**Vatio AI** hace ese trabajo de análisis: calcula el comportamiento normal de cada medidor, detecta
+lo que se sale de él, lo cruza con los eventos operativos registrados, lo clasifica en una de esas
+cuatro situaciones y lo ordena por prioridad. Además explica **por qué** llegó a cada conclusión,
+con los números que la sustentan, y recomienda una acción. Se registra lo que el equipo hizo con
+cada alerta.
+
+El resultado: en lugar de revisar miles de lecturas, el equipo abre la aplicación y ve en pocos
+minutos **qué requiere atención, por qué y qué hacer**. Lo importante primero, sin falsas alarmas.
+
 ## Inicio rápido
 
 Requisitos: **Node.js ≥ 22.12** y **pnpm ≥ 10**.
