@@ -26,9 +26,21 @@ export function findUserById(db: Db, id: number): UserRow | undefined {
   return db.select().from(users).where(eq(users.id, id)).get();
 }
 
-export function authenticate(db: Db, email: string, password: string): UserRow | null {
+/** Hash de una contraseña que nadie tiene: se verifica contra él cuando el correo no existe. */
+const DUMMY_HASH = hashPassword('usuario-inexistente');
+
+/**
+ * Si el correo no existe se verifica igual contra un hash de relleno: así el tiempo de respuesta
+ * no revela qué correos están registrados.
+ */
+export async function authenticate(
+  db: Db,
+  email: string,
+  password: string,
+): Promise<UserRow | null> {
   const user = db.select().from(users).where(eq(users.email, email.toLowerCase())).get();
-  return user && verifyPassword(password, user.passwordHash) ? user : null;
+  const valid = await verifyPassword(password, user?.passwordHash ?? DUMMY_HASH);
+  return user && valid ? user : null;
 }
 
 export const publicUser = (u: UserRow) => ({ id: u.id, email: u.email, name: u.name });

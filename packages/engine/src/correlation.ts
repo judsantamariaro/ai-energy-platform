@@ -1,7 +1,7 @@
 import type { Baseline } from './baseline.js';
 import type { EngineConfig } from './config.js';
 import type { Point } from './series.js';
-import { isPresent, maxByMagnitude, mean, median, rollingMeans } from './stats.js';
+import { isPresent, maxByMagnitude, mean, median, minMax, rollingMeans } from './stats.js';
 import type { ElectricalEvidence, SignalCode } from './types.js';
 
 export interface ElectricalSignature {
@@ -49,8 +49,7 @@ export function electricalSignature(
     baseline.pfByHour,
     (o, e) => o - e,
   );
-  const pfWorst =
-    pf.diffs.length > 0 ? Math.min(...rollingMeans(pf.diffs, rollingWindowHours)) : null;
+  const pfWorst = minMax(rollingMeans(pf.diffs, rollingWindowHours))?.min ?? null;
 
   const voltage = hourlyDiffs(
     points,

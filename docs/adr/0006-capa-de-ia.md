@@ -36,7 +36,9 @@ motivo):
 
 1. Esquema: explicación de 40 a 1200 caracteres y de 1 a 5 pasos.
 2. Números: todo número del texto debe estar en lo que vio el modelo (con redondeo, en % o como
-   parte de una fecha). Así se detectó, por ejemplo, un año inventado.
+   parte de una fecha), con una tolerancia del 0,1 %: se aceptan redondeos, no aproximaciones.
+   Los enteros hasta 10 pasan libres ("3 pasos"), salvo que sean porcentajes. Así se detectó, por
+   ejemplo, un año inventado.
 3. Contenido: sin fechas ISO, ids internos ni nombres de campos o señales. En anomalías reales y en
    calidad de datos, sin afirmaciones de causa ("se debe a", "causado por"). En falsos positivos, sin
    pasos que propongan escalar o avisar.
@@ -71,5 +73,7 @@ velocidad. La primera carga del modelo tarda entre 15 s y 80 s; después queda e
 - Un modelo de 3B puede fallar en alguna corrida: en ese caso se muestra la plantilla y queda
   registrado el motivo en `fallbackReason`.
 - Los controles no garantizan que el texto sea brillante, solo que no contradiga la evidencia.
+  Tampoco revisan el sentido de un cambio: "cayó 27 %" cuando subió pasaría el control de números
+  (la cifra existe); lo mitiga que el modelo reescribe una explicación base ya correcta.
 - Con Ollama, la explicación de 4 hallazgos agrega unos 20 s al análisis. Por eso los textos se
   generan una sola vez por análisis y se guardan (F4).

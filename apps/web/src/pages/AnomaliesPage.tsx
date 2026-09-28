@@ -1,4 +1,4 @@
-import { useNavigate, useSearchParams } from 'react-router';
+import { Link, useNavigate, useSearchParams } from 'react-router';
 import { BrainCircuit, ChevronRight, Sparkles } from 'lucide-react';
 import type { AnomalyStatus, AnomalyType, Severity } from '@aiem/shared';
 import { useAnalysisPanel } from '@/components/analysis/context';
@@ -171,7 +171,14 @@ export function AnomaliesPage() {
                       <Priority value={a.priorityScore} />
                     </TableCell>
                     <TableCell className="max-w-56">
-                      <div className="font-semibold">{a.meterId}</div>
+                      <Link
+                        to={`/anomalies/${a.id}`}
+                        onClick={(e) => e.stopPropagation()}
+                        aria-label={`Investigar la anomalía de ${a.meterId}`}
+                        className="block font-semibold hover:underline focus-visible:rounded focus-visible:outline-2 focus-visible:outline-primary"
+                      >
+                        {a.meterId}
+                      </Link>
                       <div className="truncate text-xs text-muted-foreground" title={a.reason}>
                         {a.reason}
                       </div>

@@ -44,6 +44,18 @@ export function createAnalysisService(
         const next = Stages.options[Stages.options.indexOf(stage) + 1];
         if (next) this.start(next);
       },
+      /** Estado de las etapas con `stage` terminada, sin guardarlo (para escribirlo en una transacción). */
+      completed(stage: AnalysisStage, summary: string): AnalysisStageState[] {
+        return stages.map((s) =>
+          s.stage === stage
+            ? { ...s, status: 'DONE', finishedAt: clock().toISOString(), summary }
+            : s,
+        );
+      },
+      /** Adopta un estado ya guardado por otra escritura (la transacción final). */
+      adopt(saved: AnalysisStageState[]) {
+        stages = saved;
+      },
       failRunning(message: string) {
         stages = stages.map((s) =>
           s.status === 'RUNNING'
@@ -84,21 +96,23 @@ export function createAnalysisService(
   }
 
   async function execute(runId: string) {
-    const stages = stageTracker(runId);
-    updateRun(db, runId, { status: 'RUNNING', startedAt: clock().toISOString() });
-    stages.start('READINGS');
-
+    let stages: ReturnType<typeof stageTracker> | null = null;
     try {
+      stages = stageTracker(runId);
+      updateRun(db, runId, { status: 'RUNNING', startedAt: clock().toISOString() });
+      stages.start('READINGS');
+
       const input = loadAnalysisInput(db);
       const result = analyze(input.readings, input.events, {
-        onStage: (stage, summary) => stages.done(stage, summary),
+        onStage: (stage, summary) => stages!.done(stage, summary),
       });
 
       const { insights, provider, fromLlm } = await explain(result.findings, input.meters, stages);
 
       const actions = new Map<string, number>();
-      for (const i of insights)
+      for (const i of insights) {
         actions.set(i.recommendedAction, (actions.get(i.recommendedAction) ?? 0) + 1);
+      }
       const now = clock();
       const summary: AnalysisSummary = {
         anomaliesDetected: result.summary.anomaliesDetected,
@@ -110,6 +124,14 @@ export function createAnalysisService(
           `${plural(result.summary.anomaliesDetected, 'anomalía detectada', 'anomalías detectadas')} · ` +
           `${result.summary.highPriority} ${result.summary.highPriority === 1 ? 'requiere' : 'requieren'} atención prioritaria`,
       };
+      // La última etapa se marca en la misma transacción que completa el análisis: si la
+      // transacción falla, la etapa queda RUNNING y se registra como fallida.
+      const finalStages = stages.completed(
+        'RECOMMENDATION',
+        actions.size === 0
+          ? 'Sin acciones: no hay anomalías.'
+          : [...actions].map(([action, n]) => `${n} × ${action}`).join(' · '),
+      );
 
       db.transaction((tx) => {
         saveFindings(
@@ -118,25 +140,30 @@ export function createAnalysisService(
           result.findings.map((finding, i) => ({ finding, insight: insights[i]! })),
           now,
         );
-        stages.done(
-          'RECOMMENDATION',
-          actions.size === 0
-            ? 'Sin acciones: no hay anomalías.'
-            : [...actions].map(([action, n]) => `${n} × ${action}`).join(' · '),
-        );
         updateRun(tx, runId, {
           status: 'COMPLETED',
           finishedAt: now.toISOString(),
           summary,
           meterSummaries: result.meters,
+          stages: finalStages,
         });
         recomputeMeterStatuses(tx);
       });
+      stages.adopt(finalStages);
     } catch (err) {
       const message = (err as Error).message;
       log.error(err, `El análisis ${runId} falló`);
-      stages.failRunning(message);
-      updateRun(db, runId, { status: 'FAILED', finishedAt: clock().toISOString(), error: message });
+      try {
+        stages?.failRunning(message);
+        updateRun(db, runId, {
+          status: 'FAILED',
+          finishedAt: clock().toISOString(),
+          error: message,
+        });
+      } catch (inner) {
+        // Si ni siquiera se puede registrar el fallo (p. ej. la base se cerró), no tumbar la API.
+        log.error(inner, `No se pudo registrar el fallo del análisis ${runId}`);
+      }
     }
   }
 
@@ -149,6 +176,8 @@ export function createAnalysisService(
       // Se ejecuta después de responder: el cliente consulta el avance con GET /ai/analysis/:id.
       const promise = new Promise<void>((resolve) => setImmediate(resolve))
         .then(() => execute(run.id))
+        // Última red: un rechazo sin capturar terminaría el proceso de Node.
+        .catch((err: unknown) => log.error(err, `Error inesperado en el análisis ${run.id}`))
         .finally(() => inFlight.delete(run.id));
       inFlight.set(run.id, promise);
       return { run, conflict: false };

@@ -83,7 +83,7 @@ test('flujo de la demo: Dashboard → M-109 → Run AI Analysis → Anomalía �
     .fill('Cuadrilla enviada a la planta');
   await page.getByRole('button', { name: 'Iniciar investigación' }).click();
   await expect(page.getByText('Cuadrilla enviada a la planta')).toBeVisible();
-  await page.getByRole('button', { name: 'Resolver' }).click();
+  await page.getByRole('button', { name: 'Resolver', exact: true }).click();
   await expect(page.getByText('Estado actual:').getByText('Resuelta')).toBeVisible();
 });
 
@@ -95,7 +95,7 @@ test('las anomalías quedan priorizadas y resolver M-109 lo saca de estado crít
 
   const rows = page.getByRole('row').filter({ has: page.getByRole('cell') });
   await expect(rows).toHaveCount(4);
-  const meters = await rows.locator('td:nth-child(2) div:first-child').allInnerTexts();
+  const meters = await rows.locator('td:nth-child(2) a').allInnerTexts();
   expect(meters).toEqual(['M-109', 'M-112', 'M-104', 'M-106']);
   await expect(rows.nth(0)).toContainText('Resuelta');
   await expect(rows.nth(3)).toContainText('Falso positivo');

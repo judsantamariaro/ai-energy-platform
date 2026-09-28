@@ -1,6 +1,6 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { QueryCache, QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { MutationCache, QueryCache, QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { RouterProvider } from 'react-router/dom';
 import { Toaster } from '@/components/ui/sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
@@ -10,14 +10,14 @@ import { BRAND } from './brand';
 import { router } from './App';
 import './index.css';
 
+/** Si la sesión expira en cualquier consulta o acción, se vuelve al login. */
+const onSessionExpired = (error: Error) => {
+  if (error instanceof ApiError && error.status === 401) queryClient.setQueryData(keys.me, null);
+};
+
 const queryClient: QueryClient = new QueryClient({
-  // Si la sesión expira en cualquier consulta, se vuelve al login.
-  queryCache: new QueryCache({
-    onError: (error) => {
-      if (error instanceof ApiError && error.status === 401)
-        queryClient.setQueryData(keys.me, null);
-    },
-  }),
+  queryCache: new QueryCache({ onError: onSessionExpired }),
+  mutationCache: new MutationCache({ onError: onSessionExpired }),
   defaultOptions: {
     queries: {
       staleTime: 15_000,

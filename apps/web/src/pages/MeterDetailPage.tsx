@@ -156,7 +156,9 @@ export function MeterDetailPage() {
           </Tabs>
         </CardHeader>
         <CardContent>
-          {readings.data ? (
+          {readings.error ? (
+            <ErrorState error={readings.error} onRetry={() => readings.refetch()} />
+          ) : readings.data ? (
             <MeterSeriesChart
               readings={readings.data}
               profile={m.baselineProfile}

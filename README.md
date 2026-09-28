@@ -144,16 +144,16 @@ salvo `health` y `auth/login`, requieren sesión
 ## Calidad
 
 ```bash
-pnpm check      # formato + lint + typecheck + 165 tests unitarios y de integración
+pnpm check      # formato + lint + typecheck + 180 tests unitarios y de integración
 pnpm test:e2e   # 4 tests de punta a punta en el navegador (flujo completo de la demo)
 ```
 
 | Paquete           | Tests | Qué cubren                                                                                |
 | ----------------- | ----- | ----------------------------------------------------------------------------------------- |
-| `packages/engine` | 65    | Los 4 casos del dataset, 8 sanos sin hallazgos, sensibilidad ±20 %, escenarios sintéticos |
-| `packages/ai`     | 32    | Plantillas, validación de números y de contenido, proveedor Ollama                        |
-| `apps/api`        | 60    | Login y sesión, flujo completo sobre el dataset real, Acción, concurrencia, LLM           |
-| `apps/web`        | 8     | Formato, insignias y login                                                                |
+| `packages/engine` | 66    | Los 4 casos del dataset, 8 sanos sin hallazgos, sensibilidad ±20 %, escenarios sintéticos |
+| `packages/ai`     | 41    | Plantillas, validación de números y de contenido, proveedor Ollama                        |
+| `apps/api`        | 64    | Login, sesión y límite de intentos, flujo sobre el dataset real, Acción, fallos, LLM      |
+| `apps/web`        | 9     | Formato, insignias, login y error al lanzar el análisis                                   |
 | `e2e`             | 4     | Login → Dashboard → M-109 → Run AI Analysis → Anomalía → Explicación → Acción             |
 
 Los tests de punta a punta usan en Windows el Edge del sistema; en otros sistemas,

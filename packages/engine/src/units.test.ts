@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { parseDeclaredDurationHours } from './events.js';
 import { confidence, factor, priority } from './scoring.js';
-import { mad, maxByMagnitude, median, rollingMeans } from './stats.js';
+import { mad, maxByMagnitude, median, minMax, rollingMeans } from './stats.js';
 
 describe('estadística', () => {
   it('median y mad', () => {
@@ -14,6 +14,12 @@ describe('estadística', () => {
   it('rollingMeans usa la media total si hay menos valores que la ventana', () => {
     expect(rollingMeans([1, 2, 3, 4], 2)).toEqual([1.5, 2.5, 3.5]);
     expect(rollingMeans([1, 3], 6)).toEqual([2]);
+  });
+
+  it('minMax funciona con series enormes, donde Math.min(...) desborda la pila', () => {
+    const values = Array.from({ length: 300_000 }, (_, i) => i);
+    expect(minMax(values)).toEqual({ min: 0, max: 299_999 });
+    expect(minMax([])).toBeNull();
   });
 
   it('maxByMagnitude conserva el signo', () => {

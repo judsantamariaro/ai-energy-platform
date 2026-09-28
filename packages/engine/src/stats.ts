@@ -31,6 +31,21 @@ export function rollingMeans(values: number[], window: number): number[] {
   return out;
 }
 
+/**
+ * Mínimo y máximo en una pasada. `Math.min(...values)` desborda la pila con cientos de miles
+ * de elementos (p. ej. más de un año de lecturas horarias de varios medidores).
+ */
+export function minMax(values: number[]): { min: number; max: number } | null {
+  if (values.length === 0) return null;
+  let min = Infinity;
+  let max = -Infinity;
+  for (const v of values) {
+    if (v < min) min = v;
+    if (v > max) max = v;
+  }
+  return { min, max };
+}
+
 /** El valor de mayor magnitud (conserva el signo). */
 export function maxByMagnitude(values: number[]): number | null {
   return values.reduce<number | null>(

@@ -8,7 +8,7 @@ import { detectDataQualityIncidents, type DataQualityIncident } from './detectio
 import { assessConsumptionEvents, assessDataQualityEvents } from './events.js';
 import { summarizeMeter } from './meters.js';
 import { buildSeries, type MeterSeries } from './series.js';
-import { mean, round, sum } from './stats.js';
+import { mean, minMax, round, sum } from './stats.js';
 import type { AnalysisResult, EventInput, Finding, ReadingInput } from './types.js';
 
 /** Etapas que resuelve el motor; EXPLANATION y RECOMMENDATION son de la capa de IA. */
@@ -144,7 +144,7 @@ export function analyze(
   const meters = work.map((w) =>
     summarizeMeter(w.series, w.baseline, findingsByMeter.get(w.series.meterId) ?? [], config),
   );
-  const timestamps = allSeries.flatMap((s) => s.points.map((p) => p.t));
+  const period = minMax(allSeries.flatMap((s) => s.points.map((p) => p.t)));
   const avgConfidence = mean(findings.map((f) => f.confidence));
 
   return {
@@ -153,8 +153,8 @@ export function analyze(
     summary: {
       metersAnalyzed: allSeries.length,
       readingsAnalyzed,
-      periodStart: timestamps.length > 0 ? new Date(Math.min(...timestamps)).toISOString() : null,
-      periodEnd: timestamps.length > 0 ? new Date(Math.max(...timestamps)).toISOString() : null,
+      periodStart: period ? new Date(period.min).toISOString() : null,
+      periodEnd: period ? new Date(period.max).toISOString() : null,
       totalConsumptionKwh: round(sum(meters.map((m) => m.periodConsumptionKwh)), 1),
       anomaliesDetected: findings.length,
       highPriority: findings.filter((f) => f.severity === 'HIGH').length,

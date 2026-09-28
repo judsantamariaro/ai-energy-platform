@@ -28,3 +28,6 @@ Thumbs.db
 # Playwright
 test-results/
 playwright-report/
+
+# Guion personal de la demo (no se versiona)
+GUION-DEMO.md

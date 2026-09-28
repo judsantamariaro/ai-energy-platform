@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router';
+import { Link, useNavigate } from 'react-router';
 import { ChevronRight } from 'lucide-react';
 import type { MeterListItem } from '@aiem/shared';
 import { AnomalyTypeBadge, MeterStatusBadge, SeverityBadge, Variation } from '@/components/status';
@@ -10,7 +10,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { kwh, pct } from '@/lib/format';
+import { kwh, meterPath, pct } from '@/lib/format';
 
 /** Tabla de medidores: consumo de las últimas 24 h frente al baseline (A8). */
 export function MetersTable({ meters }: { meters: MeterListItem[] }) {
@@ -34,10 +34,17 @@ export function MetersTable({ meters }: { meters: MeterListItem[] }) {
           <TableRow
             key={m.meterId}
             className="cursor-pointer"
-            onClick={() => navigate(`/meters/${m.meterId}`)}
+            onClick={() => navigate(meterPath(m.meterId))}
           >
             <TableCell className="pl-6">
-              <div className="font-semibold">{m.meterId}</div>
+              {/* Enlace real: se alcanza con Tab y se abre con Enter; la fila es un atajo de mouse. */}
+              <Link
+                to={meterPath(m.meterId)}
+                onClick={(e) => e.stopPropagation()}
+                className="font-semibold hover:underline focus-visible:rounded focus-visible:outline-2 focus-visible:outline-primary"
+              >
+                {m.meterId}
+              </Link>
               <div className="text-xs text-muted-foreground">
                 {m.name}
                 {m.location && ` · ${m.location}`}

@@ -37,6 +37,11 @@ describe('ungroundedNumbers', () => {
     expect(ungroundedNumbers('Sigue estos 3 pasos.', allowed)).toEqual([]);
   });
 
+  it('no acepta aproximaciones ni porcentajes chicos inventados', () => {
+    expect(ungroundedNumbers('Se consumieron 5.400 kWh.', allowed)).toEqual([5400]);
+    expect(ungroundedNumbers('El voltaje bajó un 8 %.', allowed)).toEqual([8]);
+  });
+
   it('detecta cifras inventadas', () => {
     expect(ungroundedNumbers('El consumo subió 250 % y el PF llegó a 0,52.', allowed)).toEqual([
       250, 0.52,

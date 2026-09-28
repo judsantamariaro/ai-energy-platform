@@ -16,6 +16,8 @@ export function createSessionToken(
   ttlMs: number,
   now = Date.now(),
 ) {
+  if (!Number.isFinite(ttlMs) || ttlMs <= 0)
+    throw new Error('La duración de la sesión no es válida');
   const payload = `${userId}.${now + ttlMs}`;
   return `${payload}.${sign(payload, secret)}`;
 }
@@ -29,7 +31,8 @@ export function readSessionToken(token: string, secret: string, now = Date.now()
   const expected = Buffer.from(sign(`${userId}.${expiresAt}`, secret));
   const actual = Buffer.from(signature);
   if (expected.length !== actual.length || !timingSafeEqual(expected, actual)) return null;
-  if (Number(expiresAt) <= now) return null;
+  const expires = Number(expiresAt);
+  if (!Number.isFinite(expires) || expires <= now) return null;
 
   const id = Number(userId);
   return Number.isInteger(id) ? id : null;

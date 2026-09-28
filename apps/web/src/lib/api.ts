@@ -78,17 +78,18 @@ export const api = {
 
   meters: (filters: MeterFilters = {}) =>
     request<MeterListItem[]>('GET', `/meters${query({ ...filters })}`),
-  meter: (meterId: string) => request<MeterDetail>('GET', `/meters/${meterId}`),
-  readings: (meterId: string) => request<Reading[]>('GET', `/meters/${meterId}/readings`),
+  meter: (meterId: string) => request<MeterDetail>('GET', `/meters/${encodeURIComponent(meterId)}`),
+  readings: (meterId: string) =>
+    request<Reading[]>('GET', `/meters/${encodeURIComponent(meterId)}/readings`),
 
   anomalies: (filters: AnomalyFilters = {}) =>
     request<AnomalyListItem[]>('GET', `/anomalies${query({ ...filters })}`),
-  anomaly: (id: string) => request<AnomalyDetail>('GET', `/anomalies/${id}`),
+  anomaly: (id: string) => request<AnomalyDetail>('GET', `/anomalies/${encodeURIComponent(id)}`),
   updateAnomaly: (id: string, change: UpdateAnomalyRequest) =>
-    request<AnomalyDetail>('PATCH', `/anomalies/${id}`, change),
+    request<AnomalyDetail>('PATCH', `/anomalies/${encodeURIComponent(id)}`, change),
 
   /** Devuelve el análisis creado (202) o el que ya estaba en curso (409). */
   startAnalysis: () => request<AnalysisRun>('POST', '/ai/analyze', undefined, [409]),
-  analysis: (id: string) => request<AnalysisRun>('GET', `/ai/analysis/${id}`),
+  analysis: (id: string) => request<AnalysisRun>('GET', `/ai/analysis/${encodeURIComponent(id)}`),
   latestAnalysis: () => request<AnalysisRun | null>('GET', '/ai/analysis/latest'),
 };

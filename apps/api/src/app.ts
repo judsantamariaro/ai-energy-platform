@@ -1,4 +1,5 @@
 import cookie from '@fastify/cookie';
+import rateLimit from '@fastify/rate-limit';
 import swagger from '@fastify/swagger';
 import swaggerUi from '@fastify/swagger-ui';
 import Fastify, { type FastifyError, type FastifyServerOptions } from 'fastify';
@@ -62,9 +63,16 @@ export function buildApp(options: AppOptions, fastifyOptions: FastifyServerOptio
     }
     const status = error.statusCode ?? 500;
     if (status >= 500) request.log.error(error);
+    // Algunos plugins (p. ej. rate-limit) lanzan objetos con `error` en lugar de `name`.
+    const name = (error as { error?: unknown }).error;
     return reply.code(status).send({
-      error: status >= 500 ? 'Internal Server Error' : error.name,
-      message: status >= 500 ? 'Error interno del servidor' : error.message,
+      error:
+        status >= 500
+          ? 'Internal Server Error'
+          : typeof name === 'string'
+            ? name
+            : error.name || 'Error',
+      message: status >= 500 ? 'Error interno del servidor' : error.message || 'Error',
     });
   });
   app.setNotFoundHandler((request, reply) =>
@@ -74,6 +82,15 @@ export function buildApp(options: AppOptions, fastifyOptions: FastifyServerOptio
   );
 
   app.register(cookie);
+  // Solo en las rutas que lo piden en su `config` (hoy, el login).
+  app.register(rateLimit, {
+    global: false,
+    errorResponseBuilder: (_request, context) => ({
+      statusCode: 429,
+      error: 'Too Many Requests',
+      message: `Demasiados intentos. Vuelve a intentarlo en ${context.after}.`,
+    }),
+  });
   app.register(swagger, {
     openapi: {
       info: {

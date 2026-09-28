@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { DEFAULT_CONFIG } from '@aiem/engine';
 import { allowedNumbers, ungroundedNumbers } from '../src/grounding.js';
 import { RECOMMENDED_ACTIONS, templateNarrative, templateReason } from '../src/templates.js';
 import { findingOf, findings } from './fixtures.js';
@@ -50,11 +51,12 @@ describe('plantillas sobre el dataset entregado', () => {
   });
 
   it.each(findings.map((f) => [f.meterId, f] as const))(
-    '%s: todos los números de la plantilla están en la evidencia',
+    '%s: todos los números de la plantilla están en la evidencia o en los umbrales del motor',
     (_, finding) => {
       const { confidenceFactors: _factors, priority: _priority, ...evidence } = finding.evidence;
       const { explanation, steps } = templateNarrative(finding);
-      const allowed = allowedNumbers(evidence);
+      // Los umbrales ("voltaje fuera de ±5 %") son hechos legítimos: salen de la configuración.
+      const allowed = allowedNumbers(evidence, DEFAULT_CONFIG);
 
       expect(
         ungroundedNumbers([templateReason(finding), explanation, ...steps].join(' '), allowed),

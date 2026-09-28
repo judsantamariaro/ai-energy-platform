@@ -54,6 +54,31 @@ describe('createLlmService (LLM_PROVIDER=auto)', () => {
   });
 });
 
+describe('análisis que falla', () => {
+  it('queda FAILED con la etapa que falló marcada, y la API sigue respondiendo', async () => {
+    const llm: LlmService = {
+      status: () => ({ mode: 'auto', provider: null, model: null, available: false }),
+      resolve: async () => {
+        throw new Error('Ollama se cayó a mitad del análisis');
+      },
+      warmUp: async () => {},
+    };
+    const t = await createTestApp({ llm });
+
+    const { id } = await t.runAnalysis();
+    const run = (await t.api('GET', `/api/ai/analysis/${id}`)).json() as AnalysisRun;
+    expect(run).toMatchObject({ status: 'FAILED', error: 'Ollama se cayó a mitad del análisis' });
+    expect(run.stages.find((s) => s.stage === 'EXPLANATION')).toMatchObject({ status: 'FAILED' });
+    expect(run.stages.find((s) => s.stage === 'RECOMMENDATION')).toMatchObject({
+      status: 'PENDING',
+    });
+    // No se guardó nada a medias y se puede volver a intentar.
+    expect((await t.api('GET', '/api/anomalies')).json()).toEqual([]);
+    expect((await t.api('POST', '/api/ai/analyze')).statusCode).toBe(202);
+    await t.close();
+  });
+});
+
 describe('análisis con un LLM disponible', () => {
   it('guarda el texto del modelo y lo informa en la etapa y en la investigación', async () => {
     const provider: NarrativeProvider = {

@@ -39,6 +39,9 @@ export function confidencePct(value: number): string {
   return `${num(value * 100, 0)} %`;
 }
 
+/** Ruta del detalle de un medidor (el id viene libre del CSV: se codifica). */
+export const meterPath = (meterId: string) => `/meters/${encodeURIComponent(meterId)}`;
+
 const pad = (n: number) => String(n).padStart(2, '0');
 const MONTHS = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
 

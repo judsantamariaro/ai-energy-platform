@@ -27,7 +27,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { useAnomaly, useMeter, useReadings, useUpdateAnomaly } from '@/hooks/api';
-import { dateTime, kwh, num, pct } from '@/lib/format';
+import { dateTime, kwh, meterPath, num, pct } from '@/lib/format';
 import { ANOMALY_STATUS, ANOMALY_TYPE_HINT, EVENT_ROLE, SIGNAL } from '@/lib/labels';
 import { cn } from '@/lib/utils';
 
@@ -401,7 +401,7 @@ export function InvestigationPage() {
       <div className="space-y-3">
         <div className="flex flex-wrap items-center gap-3">
           <h1 className="text-2xl font-semibold tracking-tight">
-            <Link to={`/meters/${a.meterId}`} className="hover:underline">
+            <Link to={meterPath(a.meterId)} className="hover:underline">
               {a.meterId}
             </Link>{' '}
             <span className="font-normal text-muted-foreground">· {a.meterName}</span>
@@ -445,7 +445,15 @@ export function InvestigationPage() {
             title="Comparación contra baseline"
             description="Consumo horario (línea continua) frente a lo esperado para cada hora (discontinua). La zona sombreada es la ventana de la anomalía."
           >
-            {readings.data && meter.data ? (
+            {readings.error || meter.error ? (
+              <ErrorState
+                error={readings.error ?? meter.error}
+                onRetry={() => {
+                  void readings.refetch();
+                  void meter.refetch();
+                }}
+              />
+            ) : readings.data && meter.data ? (
               <MeterSeriesChart
                 readings={readings.data}
                 profile={meter.data.baselineProfile}

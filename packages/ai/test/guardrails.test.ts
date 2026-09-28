@@ -15,6 +15,16 @@ describe('contentViolations', () => {
     ]);
   });
 
+  it.each(['se debió a', 'a causa de', 'originado por', 'provocado por', 'debido a'])(
+    'rechaza la causa afirmada con "%s"',
+    (phrase) => {
+      const t = text(`El aumento, ${phrase} una falla del motor, sigue activo.`);
+      expect(contentViolations(t, 'REAL_ANOMALY')).toEqual([
+        'afirma una causa que el análisis no conoce',
+      ]);
+    },
+  );
+
   it('acepta hipótesis prudentes en una anomalía real', () => {
     const t = text(
       'Al mismo tiempo cayó el factor de potencia, lo que podría indicar una carga inductiva nueva.',
@@ -64,5 +74,19 @@ describe('contentViolations', () => {
     expect(
       contentViolations(text('Parada programada.', ['No escalar.']), 'FALSE_POSITIVE'),
     ).toEqual([]);
+  });
+
+  it.each(['Informar al jefe de mantenimiento.', 'Escalarlo al supervisor.'])(
+    'en un falso positivo rechaza el paso "%s"',
+    (step) => {
+      expect(contentViolations(text('Parada programada.', [step]), 'FALSE_POSITIVE')).toEqual([
+        'propone escalar un falso positivo',
+      ]);
+    },
+  );
+
+  it('un paso que niega no propone nada ("No es necesario comunicar nada")', () => {
+    const t = text('Parada programada.', ['No es necesario comunicar nada.', 'No escalar.']);
+    expect(contentViolations(t, 'FALSE_POSITIVE')).toEqual([]);
   });
 });

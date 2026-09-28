@@ -16,11 +16,13 @@ export const authRoutes: FastifyPluginAsyncZod<AppDeps> = async (app, deps) => {
         tags: ['auth'],
         summary: 'Inicia sesión y deja la sesión en una cookie httpOnly',
         body: LoginRequest,
-        response: { 200: User, 401: ErrorResponse },
+        response: { 200: User, 401: ErrorResponse, 429: ErrorResponse },
       },
+      // Frena la fuerza bruta: 10 intentos por minuto por IP.
+      config: { rateLimit: { max: 10, timeWindow: '1 minute' } },
     },
     async (request, reply) => {
-      const user = authenticate(deps.db, request.body.email, request.body.password);
+      const user = await authenticate(deps.db, request.body.email, request.body.password);
       if (!user) {
         return reply
           .code(401)
@@ -31,7 +33,7 @@ export const authRoutes: FastifyPluginAsyncZod<AppDeps> = async (app, deps) => {
         sameSite: 'lax',
         secure: deps.secureCookies,
         path: '/',
-        maxAge: ttlMs / 1000,
+        maxAge: Math.floor(ttlMs / 1000),
       });
       return publicUser(user);
     },

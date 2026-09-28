@@ -27,6 +27,12 @@ Además:
 - **Estado del medidor:** se recalcula con la regla del motor (A9) a partir de las anomalías
   vigentes que siguen activas. Resolver la anomalía de M-109 lo saca de CRITICAL.
 - **Arranque:** un análisis que quedó a medias por un reinicio se marca como fallido.
+- **Robustez del análisis:** cualquier error queda registrado como análisis fallido, con la etapa
+  que falló, sin tumbar el proceso. La última etapa se marca en la misma transacción que completa
+  el análisis.
+- **Login:** `scrypt` asíncrono (no bloquea otras peticiones), el mismo tiempo de respuesta exista
+  o no el correo, 10 intentos por minuto por IP (`@fastify/rate-limit`) y cookie `Secure` con
+  `COOKIE_SECURE=true` al desplegar detrás de HTTPS.
 
 ## Consecuencias
 

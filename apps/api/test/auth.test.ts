@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { createSessionToken, readSessionToken } from '../src/auth/session.js';
 import { hashPassword, verifyPassword } from '../src/auth/password.js';
+import { positiveNumber } from '../src/config.js';
 import { createTestApp, DEMO, type TestApp } from './helpers.js';
 
 let t: TestApp;
@@ -69,6 +70,27 @@ describe('rutas protegidas', () => {
   });
 });
 
+describe('límite de intentos', () => {
+  it('después de 10 intentos por minuto, el login responde 429', async () => {
+    // createTestApp ya hizo 1 login, así que quedan 9 intentos antes del límite.
+    const statuses: number[] = [];
+    for (let i = 0; i < 10; i++) statuses.push((await t.login(DEMO.email, 'mala')).res.statusCode);
+    expect(statuses.slice(0, 9)).toEqual(Array(9).fill(401));
+    expect(statuses[9]).toBe(429);
+    const blocked = await t.login(DEMO.email, DEMO.password);
+    expect(blocked.res.json()).toMatchObject({ error: 'Too Many Requests' });
+  });
+});
+
+describe('configuración', () => {
+  it('rechaza valores no numéricos o no positivos', () => {
+    expect(positiveNumber('SESSION_HOURS', undefined, 8)).toBe(8);
+    expect(positiveNumber('SESSION_HOURS', '0.5', 8)).toBe(0.5);
+    expect(() => positiveNumber('SESSION_HOURS', '8h', 8)).toThrow('SESSION_HOURS');
+    expect(() => positiveNumber('SESSION_HOURS', '-1', 8)).toThrow();
+  });
+});
+
 describe('token de sesión y contraseña', () => {
   it('el token expira y no se puede falsificar', () => {
     const token = createSessionToken(7, 'secreto', 1000, 0);
@@ -78,10 +100,15 @@ describe('token de sesión y contraseña', () => {
     expect(readSessionToken(token.replace(/^7/, '8'), 'secreto', 500)).toBeNull();
   });
 
-  it('el hash de la contraseña usa sal: dos hashes distintos, ambos válidos', () => {
+  it('el hash de la contraseña usa sal: dos hashes distintos, ambos válidos', async () => {
     const [a, b] = [hashPassword('clave'), hashPassword('clave')];
     expect(a).not.toBe(b);
-    expect(verifyPassword('clave', a)).toBe(true);
-    expect(verifyPassword('otra', a)).toBe(false);
+    expect(await verifyPassword('clave', a)).toBe(true);
+    expect(await verifyPassword('otra', a)).toBe(false);
+  });
+
+  it('un token con expiración no numérica nunca es válido', () => {
+    expect(readSessionToken('1.NaN.firma', 'secreto')).toBeNull();
+    expect(() => createSessionToken(1, 'secreto', Number.NaN)).toThrow();
   });
 });

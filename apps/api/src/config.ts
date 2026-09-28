@@ -14,6 +14,15 @@ const env = process.env;
 
 export type LlmMode = 'auto' | 'ollama' | 'none';
 
+export function positiveNumber(name: string, value: string | undefined, fallback: number): number {
+  if (value === undefined || value === '') return fallback;
+  const n = Number(value);
+  if (!Number.isFinite(n) || n <= 0) {
+    throw new Error(`${name} debe ser un número positivo (recibido: "${value}")`);
+  }
+  return n;
+}
+
 function llmMode(value: string | undefined): LlmMode {
   if (value === undefined || value === '') return 'auto';
   if (value === 'auto' || value === 'ollama' || value === 'none') return value;
@@ -21,7 +30,7 @@ function llmMode(value: string | undefined): LlmMode {
 }
 
 export const config = {
-  port: Number(env.PORT ?? 3000),
+  port: positiveNumber('PORT', env.PORT, 3000),
   host: env.HOST ?? '127.0.0.1',
   logLevel: env.LOG_LEVEL ?? 'info',
   databaseFile: env.DATABASE_FILE ?? resolve(cwd, '.data/aiem.db'),
@@ -30,7 +39,9 @@ export const config = {
   auth: {
     /** Sin SESSION_SECRET se genera uno por arranque: las sesiones no sobreviven un reinicio. */
     sessionSecret: env.SESSION_SECRET ?? randomBytes(32).toString('hex'),
-    sessionHours: Number(env.SESSION_HOURS ?? 8),
+    sessionHours: positiveNumber('SESSION_HOURS', env.SESSION_HOURS, 8),
+    /** Cookie solo por HTTPS: activar al desplegar detrás de TLS. */
+    secureCookies: env.COOKIE_SECURE === 'true',
     demoUser: {
       email: env.DEMO_EMAIL ?? 'demo@bia.energy',
       password: env.DEMO_PASSWORD ?? 'energia2026',
@@ -42,7 +53,7 @@ export const config = {
     mode: llmMode(env.LLM_PROVIDER),
     ollamaUrl: env.OLLAMA_URL ?? 'http://127.0.0.1:11434',
     model: env.OLLAMA_MODEL ?? 'qwen2.5:3b',
-    timeoutMs: Number(env.LLM_TIMEOUT_MS ?? 60_000),
+    timeoutMs: positiveNumber('LLM_TIMEOUT_MS', env.LLM_TIMEOUT_MS, 60_000),
   },
 };
 

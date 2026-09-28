@@ -17,7 +17,13 @@ const bootLog = {
 const llm = createLlmService(config.llm, bootLog);
 
 const app = buildApp(
-  { db, llm, sessionSecret: config.auth.sessionSecret, sessionHours: config.auth.sessionHours },
+  {
+    db,
+    llm,
+    sessionSecret: config.auth.sessionSecret,
+    sessionHours: config.auth.sessionHours,
+    secureCookies: config.auth.secureCookies,
+  },
   { logger: { level: config.logLevel } },
 );
 app.addHook('onClose', async () => database.close());

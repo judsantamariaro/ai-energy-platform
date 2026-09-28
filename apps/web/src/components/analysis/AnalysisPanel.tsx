@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { CheckCircle2, Circle, Loader2, Sparkles, XCircle } from 'lucide-react';
 import type { AnalysisRun, AnalysisStageState } from '@aiem/shared';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import {
   Sheet,
@@ -132,9 +133,17 @@ export function AnalysisPanelProvider({ children }: { children: React.ReactNode 
       setOpen(true);
     },
     run: () => {
-      setLive(true);
       setOpen(true);
-      if (!running) start.mutate();
+      if (running) {
+        setLive(true);
+        return;
+      }
+      // Se anima solo cuando la API confirma que el análisis arrancó: si falla, no se "reproduce"
+      // el análisis anterior como si fuera nuevo.
+      start.mutate(undefined, {
+        onSuccess: () => setLive(true),
+        onError: (err) => toast.error(`No se pudo iniciar el análisis: ${err.message}`),
+      });
     },
   };
 
@@ -152,6 +161,14 @@ export function AnalysisPanelProvider({ children }: { children: React.ReactNode 
             </SheetDescription>
           </SheetHeader>
 
+          {start.isError && (
+            <div
+              role="alert"
+              className="mx-4 rounded-xl bg-critical-soft p-4 text-sm text-critical"
+            >
+              No se pudo iniciar el análisis: {start.error.message}
+            </div>
+          )}
           {run ? (
             <PanelBody key={run.id} run={run} live={live} />
           ) : (
