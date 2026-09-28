@@ -27,17 +27,14 @@ export const analysisRoutes: FastifyPluginAsyncZod<AppDeps> = async (app, { db, 
     {
       schema: {
         tags: ['analysis'],
-        summary: 'El análisis más reciente, en curso o terminado',
-        response: { 200: AnalysisRun, 404: ErrorResponse },
+        summary: 'El análisis más reciente, en curso o terminado; null si aún no se ha ejecutado',
+        response: { 200: AnalysisRun.nullable() },
       },
     },
-    async (_request, reply) => {
+    async () => {
+      // "Aún no hay análisis" es un estado normal, no un error: 200 con null.
       const run = latestRun(db);
-      return run
-        ? toAnalysisRun(run)
-        : reply
-            .code(404)
-            .send({ error: 'Not Found', message: 'Aún no se ha ejecutado un análisis' });
+      return run ? toAnalysisRun(run) : null;
     },
   );
 

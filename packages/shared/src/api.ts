@@ -8,8 +8,7 @@ import { AnalysisRunStatus, AnalysisStage, AnomalyType, MeterStatus, Severity } 
 export const AnomalyStatus = z.enum(['OPEN', 'IN_PROGRESS', 'RESOLVED', 'DISMISSED']);
 export type AnomalyStatus = z.infer<typeof AnomalyStatus>;
 
-/** Estados en los que una anomalía todavía requiere atención. */
-export const ACTIVE_ANOMALY_STATUSES: readonly AnomalyStatus[] = ['OPEN', 'IN_PROGRESS'];
+export { ACTIVE_ANOMALY_STATUSES } from './constants.js';
 
 export const ErrorResponse = z.object({ error: z.string(), message: z.string() });
 

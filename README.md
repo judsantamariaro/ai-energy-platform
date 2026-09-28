@@ -5,19 +5,19 @@ acciones** sobre anomalías de consumo.
 
 Ciclo que demuestra la solución: **datos → análisis → anomalía → explicación → priorización → acción**.
 
-> Estado: **F4 — API** completada. Ver [hoja de ruta](#hoja-de-ruta).
+> Estado: **F5 — frontend** completado. Ver [hoja de ruta](#hoja-de-ruta).
 
 ## Stack
 
-| Capa              | Tecnología                                   |
-| ----------------- | -------------------------------------------- |
-| Lenguaje          | TypeScript (estricto) en todo el stack       |
-| Monorepo          | pnpm workspaces                              |
-| API               | Node 22 + Fastify                            |
-| Persistencia      | SQLite + Drizzle ORM                         |
-| Frontend          | React + Vite                                 |
-| Contratos         | zod, compartidos entre API y frontend        |
-| Testing / calidad | Vitest, ESLint (typescript-eslint), Prettier |
+| Capa              | Tecnología                                                  |
+| ----------------- | ----------------------------------------------------------- |
+| Lenguaje          | TypeScript (estricto) en todo el stack                      |
+| Monorepo          | pnpm workspaces                                             |
+| API               | Node 22 + Fastify                                           |
+| Persistencia      | SQLite + Drizzle ORM                                        |
+| Frontend          | React + Vite, Tailwind + shadcn/ui, ECharts, TanStack Query |
+| Contratos         | zod, compartidos entre API y frontend                       |
+| Testing / calidad | Vitest, ESLint (typescript-eslint), Prettier                |
 
 Las razones de cada decisión están en [`docs/adr/`](docs/adr/).
 
@@ -119,6 +119,22 @@ ollama pull qwen2.5:3b
 pnpm --filter @aiem/ai compare-models qwen2.5:3b   # prueba el modelo con los hallazgos reales
 ```
 
+## Interfaz
+
+Abre **http://localhost:5173** y entra con el usuario de demostración (el login tiene un botón que
+completa las credenciales). El recorrido de la demo:
+
+1. **Dashboard:** KPIs, anomalías que requieren atención y consumo diario.
+2. **Run AI Analysis** (barra superior): panel con las 7 etapas del análisis y el resultado.
+3. **Medidores:** filtros por estado, búsqueda por `meter_id` y orden por consumo, variación o
+   severidad. El detalle muestra la serie horaria con el baseline, la ventana de la anomalía y los
+   eventos.
+4. **Anomalías IA:** hallazgos por prioridad, con tipo, severidad, confianza y acción.
+5. **Investigación:** qué encontró la IA, comparación contra baseline, variables que cambiaron,
+   eventos, severidad y confianza, acción recomendada y el registro de la Acción.
+
+Detalle de las decisiones de interfaz en [ADR 0008](docs/adr/0008-frontend.md).
+
 ## API
 
 Documentación interactiva (OpenAPI) en **http://localhost:3000/docs**. Todas las rutas van bajo
@@ -148,6 +164,6 @@ Documentación interactiva (OpenAPI) en **http://localhost:3000/docs**. Todas la
 | F2   | Motor analítico validado contra los casos del dataset                  | ✅     |
 | F3   | Capa IA: explicación y recomendación sustentadas en evidencia          | ✅     |
 | F4   | API completa + análisis asíncrono por etapas                           | ✅     |
-| F5   | Frontend SaaS: dashboard, medidores, detalle, anomalías, investigación | ⏳     |
+| F5   | Frontend SaaS: dashboard, medidores, detalle, anomalías, investigación | ✅     |
 | F6   | Calidad: tests e2e, documentación                                      | ⏳     |
 | F7   | Demo                                                                   | ⏳     |

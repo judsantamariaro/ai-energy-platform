@@ -42,7 +42,9 @@ describe('antes del primer análisis', () => {
   });
 
   it('no hay análisis que consultar', async () => {
-    expect((await t.api('GET', '/api/ai/analysis/latest')).statusCode).toBe(404);
+    const res = await t.api('GET', '/api/ai/analysis/latest');
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toBeNull();
   });
 });
 
