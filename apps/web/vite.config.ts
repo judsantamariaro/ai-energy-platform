@@ -17,7 +17,7 @@ export default defineConfig({
     port: 5173,
     // En desarrollo el frontend habla con la API por el mismo origen (sin CORS).
     proxy: {
-      '/api': 'http://127.0.0.1:3000',
+      '/api': process.env.API_URL ?? 'http://127.0.0.1:3000',
     },
   },
 });

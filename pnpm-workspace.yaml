@@ -1,6 +1,7 @@
 packages:
   - 'apps/*'
   - 'packages/*'
+  - 'e2e'
 
 # pnpm 10 no ejecuta scripts de instalación salvo los autorizados aquí.
 onlyBuiltDependencies:
