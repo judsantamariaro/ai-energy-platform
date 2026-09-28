@@ -24,6 +24,15 @@ describe('ungroundedNumbers', () => {
     expect(ungroundedNumbers(text, allowed)).toEqual([]);
   });
 
+  it('no confunde un decimal en inglés con miles ("0.740" no es 740)', () => {
+    expect(ungroundedNumbers('El factor de potencia cayó a 0.740.', allowed)).toEqual([]);
+  });
+
+  it('acepta un número ambiguo si alguna de sus lecturas está en la evidencia', () => {
+    // "1.079" puede ser 1079 (miles) o 1,079 (decimal); la evidencia tiene 1,0791.
+    expect(ungroundedNumbers('La desviación fue de 1.079.', allowed)).toEqual([]);
+  });
+
   it('acepta enteros pequeños que no son datos ("3 pasos")', () => {
     expect(ungroundedNumbers('Sigue estos 3 pasos.', allowed)).toEqual([]);
   });

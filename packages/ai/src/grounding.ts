@@ -6,17 +6,30 @@
  * También los números del texto de referencia (plantilla) y los enteros pequeños ("3 pasos").
  */
 
-const NUMBER_IN_TEXT = /\d{1,3}(?:\.\d{3})+(?:,\d+)?|\d+(?:[.,]\d+)?/g;
+// Un grupo de miles nunca empieza en 0: "0.936" es un decimal, no 936.
+const THOUSANDS = /^[1-9]\d{0,2}(?:\.\d{3})+(?:,\d+)?$/;
+const NUMBER_IN_TEXT = /[1-9]\d{0,2}(?:\.\d{3})+(?:,\d+)?|\d+(?:[.,]\d+)?/g;
 const MAX_FREE_INTEGER = 10;
+
+/**
+ * Interpretaciones posibles de cada número del texto. "5.380,9" es inequívoco, pero "1.070" puede
+ * ser 1070 (miles en español) o 1,07 (decimal en inglés): se devuelven ambas.
+ */
+export function extractNumberCandidates(text: string): number[][] {
+  return (text.match(NUMBER_IN_TEXT) ?? []).map((raw) => {
+    if (THOUSANDS.test(raw)) {
+      const asThousands = Number(raw.replaceAll('.', '').replace(',', '.'));
+      return raw.includes(',') || raw.split('.').length > 2
+        ? [asThousands]
+        : [asThousands, Number(raw)];
+    }
+    return [Number(raw.replace(',', '.'))];
+  });
+}
 
 /** Extrae los números de un texto en español o inglés ("5.380,9", "0,74", "27.2"). */
 export function extractNumbers(text: string): number[] {
-  return (text.match(NUMBER_IN_TEXT) ?? []).map((raw) => {
-    if (/^\d{1,3}(?:\.\d{3})+(?:,\d+)?$/.test(raw)) {
-      return Number(raw.replaceAll('.', '').replace(',', '.'));
-    }
-    return Number(raw.replace(',', '.'));
-  });
+  return extractNumberCandidates(text).map((candidates) => candidates[0]!);
 }
 
 function collect(value: unknown, out: number[]): void {
@@ -58,10 +71,14 @@ export function allowedNumbers(...sources: unknown[]): number[] {
   return [...allowed];
 }
 
-/** Devuelve los números del texto que no aparecen en la evidencia. */
+function isGrounded(n: number, allowed: number[]): boolean {
+  if (Number.isInteger(n) && n <= MAX_FREE_INTEGER) return true;
+  return allowed.some((a) => Math.abs(n - a) <= Math.max(0.051, a * 0.005));
+}
+
+/** Devuelve los números del texto que no aparecen en la evidencia (en ninguna interpretación). */
 export function ungroundedNumbers(text: string, allowed: number[]): number[] {
-  return extractNumbers(text).filter((n) => {
-    if (Number.isInteger(n) && n <= MAX_FREE_INTEGER) return false;
-    return !allowed.some((a) => Math.abs(n - a) <= Math.max(0.051, a * 0.005));
-  });
+  return extractNumberCandidates(text)
+    .filter((candidates) => !candidates.some((n) => isGrounded(n, allowed)))
+    .map((candidates) => candidates[0]!);
 }

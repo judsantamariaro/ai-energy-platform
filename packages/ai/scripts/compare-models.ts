@@ -8,6 +8,7 @@ import { analyze } from '@aiem/engine';
 import { loadEvents, loadReadings } from '../../engine/test/dataset.js';
 import { generateInsight } from '../src/insights.js';
 import { createOllamaProvider } from '../src/ollama.js';
+import type { Narrative, NarrativeProvider } from '../src/types.js';
 
 const models = process.argv.slice(2);
 if (models.length === 0) {
@@ -19,7 +20,13 @@ const baseUrl = process.env.OLLAMA_URL ?? 'http://127.0.0.1:11434';
 const { findings } = analyze(loadReadings(), loadEvents());
 
 for (const model of models) {
-  const provider = createOllamaProvider({ baseUrl, model, timeoutMs: 180_000 });
+  const ollama = createOllamaProvider({ baseUrl, model, timeoutMs: 180_000 });
+  // Guarda la última respuesta cruda para mostrarla también cuando la validación la rechaza.
+  const captured: { raw: Narrative | null } = { raw: null };
+  const provider: NarrativeProvider = {
+    ...ollama,
+    generate: async (request) => (captured.raw = await ollama.generate(request)),
+  };
   console.log(`\n${'='.repeat(80)}\n${model}\n${'='.repeat(80)}`);
 
   // La primera llamada carga el modelo en memoria: se descarta para no ensuciar los tiempos.
@@ -33,6 +40,7 @@ for (const model of models) {
   let totalSeconds = 0;
   for (const finding of findings) {
     const start = performance.now();
+    captured.raw = null;
     const insight = await generateInsight(finding, { provider });
     const seconds = (performance.now() - start) / 1000;
     totalSeconds += seconds;
@@ -41,7 +49,14 @@ for (const model of models) {
     console.log(
       `\n--- ${finding.meterId} · ${finding.type} · ${seconds.toFixed(1)} s · ${insight.source}`,
     );
-    if (insight.fallbackReason) console.log(`    ✗ ${insight.fallbackReason}`);
+    if (insight.fallbackReason) {
+      console.log(`    ✗ ${insight.fallbackReason}`);
+      const raw = captured.raw as Narrative | null;
+      if (raw)
+        console.log(`    [rechazado] ${raw.explanation}
+    [rechazado] ${raw.steps.join(' | ')}`);
+      continue;
+    }
     console.log(`    ${insight.explanation}`);
     insight.steps.forEach((s, i) => console.log(`    ${i + 1}. ${s}`));
   }

@@ -50,6 +50,8 @@ export interface OllamaOptions {
   baseUrl?: string;
   model: string;
   timeoutMs?: number;
+  /** Cuánto tiempo mantiene Ollama el modelo cargado tras cada petición (evita recargarlo). */
+  keepAlive?: string;
   fetch?: typeof fetch;
 }
 
@@ -58,6 +60,7 @@ export function createOllamaProvider(options: OllamaOptions): NarrativeProvider 
   const baseUrl = (options.baseUrl ?? 'http://127.0.0.1:11434').replace(/\/$/, '');
   const doFetch = options.fetch ?? fetch;
   const timeoutMs = options.timeoutMs ?? 60_000;
+  const keepAlive = options.keepAlive ?? '30m';
 
   return {
     name: 'ollama',
@@ -70,6 +73,7 @@ export function createOllamaProvider(options: OllamaOptions): NarrativeProvider 
         body: JSON.stringify({
           model: options.model,
           stream: false,
+          keep_alive: keepAlive,
           // Salida estructurada: Ollama restringe la respuesta a este esquema JSON.
           format: z.toJSONSchema(NarrativeSchema),
           options: { temperature: 0.2 },
