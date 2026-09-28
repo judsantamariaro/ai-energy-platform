@@ -1,0 +1,22 @@
+{
+  "name": "@aiem/ai",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p .",
+    "test": "vitest run",
+    "compare-models": "tsx scripts/compare-models.ts"
+  },
+  "dependencies": {
+    "@aiem/engine": "workspace:*",
+    "@aiem/shared": "workspace:*",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "tsx": "^4.23.15"
+  }
+}

@@ -104,6 +104,22 @@ importers:
         specifier: ^8.3.1
         version: 8.3.1(@types/node@26.6.3)(esbuild@0.28.2)(tsx@4.23.15)
 
+  packages/ai:
+    dependencies:
+      '@aiem/engine':
+        specifier: workspace:*
+        version: link:../engine
+      '@aiem/shared':
+        specifier: workspace:*
+        version: link:../shared
+      zod:
+        specifier: ^4.6.5
+        version: 4.6.5
+    devDependencies:
+      tsx:
+        specifier: ^4.23.15
+        version: 4.23.15
+
   packages/engine:
     dependencies:
       '@aiem/shared':
